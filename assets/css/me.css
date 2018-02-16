@@ -108,17 +108,17 @@ body.page-template-page-fullsingle-me {
   font-size: 45px;
   line-height: 60px;
   letter-spacing: -0.5px;
-  color: #999999;
+  color: #CCCCCC;
   background-image: url("../../images/background.jpg");
   background-position: center center;
   background-size: cover; }
   body.page-template-page-fullsingle-me p {
-    margin-bottom: 28px;
+    margin-bottom: 15px;
     color: #999999; }
     @media (max-width: 800px) {
       body.page-template-page-fullsingle-me p {
         font-size: 32px;
-        line-height: 40px; } }
+        line-height: 30px; } }
 
 .fs-me {
   padding: 10vh 10vw;
@@ -163,7 +163,7 @@ body.page-template-page-fullsingle-me {
           -ms-grid-row-align: center;
           align-self: center; } }
   .logo img {
-    max-width: 165px;
+    max-width: 250px;
     height: auto; }
 
 .bio {
@@ -187,12 +187,33 @@ body.page-template-page-fullsingle-me {
   @media (max-width: 800px) {
     .bio {
       max-width: none; } }
-  .bio a {
+
+.bio2 {
+  font-size: 35px;
+  color: #CCCCCC;
+  line-height: 35px;
+  max-width: 100%; }.bio2 a {
     color: #CCCCCC;
-    transition: 1s; }
-    .bio a:hover {
+    transition: 1s; 
+    line-height:10px;
+    font-size: 25px;}
+    .bio2 a:hover {
       color: #FFFFFF;
       transition: 0.1s; }
+
+.bio3 {
+  font-size: 25px;
+  color: #d36d6b;
+  line-height: 35px;
+  max-width: 100%; }.bio3 a {
+    color: #d36d6b;
+    transition: 1s; 
+    line-height:10px;
+    font-size: 25px;}
+    .bio3 a:hover {
+      color: #FFFFFF;
+      transition: 0.1s; }
+
 
 .network {
   -webkit-box-flex: 1;
@@ -237,7 +258,7 @@ body.page-template-page-fullsingle-me {
       .network ul li a:hover .svg-icon rect {
         fill: #FFFFFF;
         transition: 0.1s; }
-  .network p.credit {
+  .network p.credit0 {
     opacity: 0.4;
     font-size: 12px;
     line-height: 14px;
@@ -245,8 +266,19 @@ body.page-template-page-fullsingle-me {
     margin-bottom: 0;
     -webkit-animation: fadein 8s;
             animation: fadein 8s; }
-    .network p.credit a {
+    .network p.credit0 a {
       color: #999999; }
+  .network p.credit {
+    opacity: 0.5;
+    font-size: 18px;
+    line-height: 14px;
+    font-weight: 400;
+    margin-bottom: 0;
+    -webkit-animation: fadein 8s;
+            animation: fadein 8s; }
+    .network p.credit0 a {
+      color: #999999; }
+
 
 body.page-template-page-fullsingle-me.me-video {
   background-image: none; }
