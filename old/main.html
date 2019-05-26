@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+.parallax {
+  /* The image used */
+  background-image: url("images/background.jpg");
+
+  /* Set a specific height */
+  min-height: 700px; 
+
+  /* Create the parallax scrolling effect */
+  background-attachment: fixed;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+body, html {
+    height: 100%;
+}
+.s1 {
+    background-color: transparent;
+    height:1000px;
+    font-size:36px;
+}
+
+</style>
+</head>
+<body>
+
+<img src="images/steve2bwborder.JPG" alt="Logo" style="bacground-color: transparent" />
+
+<div style="height:100px;font-size:36px; border:1px solid red;">
+Scroll Up and Down this page to see the parallax scrolling effect.
+This divis just here to enable scrolling.
+Tip: Try to remove the background-attachment property to remove the scrolling effect.
+</div>
+
+<div class="parallax"></div>
+
+
+<p>Scroll Up and Down this page to see the parallax scrolling effect.</p>
+
+
+</body>
+</html>
