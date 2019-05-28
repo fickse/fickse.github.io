@@ -51,8 +51,8 @@ body, html {
 
 .logo {
    background: transparent;
-  padding: 20%;
-  width: 70%;
+  padding: 45% 20%;
+  width: 50%;
 }
 
 .center {
@@ -116,10 +116,11 @@ body, html {
 
 }
 .main a {
-    color: #CCCCCC;
+    color: #c9b4f9;
     transition: 1s; 
     line-height:10px; text-decoration: none;
-    font-size: 25px;}.main a:hover{ color: #FFFFFF; transition : 0.1s;}
+    font-size: 25px;
+    }.main a:hover{ color: #FFFFFF; transition : 0.1s;}
 
  p.credit0 {
     opacity: 0.4;
