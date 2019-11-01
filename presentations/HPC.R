@@ -677,6 +677,7 @@ Rscript swarm.R $SLURM_ARRAY_TASK_ID 6 6
 
 #' # Other resources 
 
-#' https://cran.r-project.org/web/views/HighPerformanceComputing.html
+#'  [R packages for HPC/Cluster Computing](https://cran.r-project.org/web/views/HighPerformanceComputing.html)  
+#'  [Awesome intro to parallel computing and load balancing](https://computing.llnl.gov/tutorials/parallel_comp/#DesignLoadBalance)
 
 
