@@ -511,7 +511,7 @@ mpirun -n 1 Rscript par.R
 #'  
 #' submit: `sbatch batchPar.sh`
 #'  
-#' ## Example 3: DIY Parallel ('swarm')
+#' ## Example 3: DIY Parallel ("Pool of Tasks" / "Swarm" scheme)
 #'  
 #' In the previous method, we let R handle much of the parallelization 'overhead' : splitting the task into separate jobs, assigning jobs to processors, then combining these outputs at the end. An alternative method I have used for larger geospatial problems on the cluster is to basically manage the parallelization ourselves -- e.g. splitting the target area into 'chunks', submitting independent jobs for each chunk, and combining the results at the end.  
 
