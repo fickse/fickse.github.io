@@ -3,7 +3,9 @@
 #' title: HPC clusters and SLURM with R
 #' author: Stephen Fick
 #' output:
-#'    rmdformats::readthedown
+#'    rmdformats::readthedown:
+#'      includes:
+#'        in_header: gstag.html
 #' ---
 
 #' ![A dam with many spouts is a parallel operation](dam.jpg)
@@ -120,12 +122,18 @@ knitr::kable(df)
 #'  
 
 
+#' ### A word of caution: Knuth's Optimization Principle
+#' > Premature optimization is the root of all evil  
+#'  
+#'  ![xkcd](optimization.png)
+#'  ![xkcd](is_it_worth_the_time.png)  
+#'  
 
 #' # Requesting an account
-
-#' Many (most?) Universities and Government Agencies either maintain or have access to HPC resources. 
-#' The USGS has its own HPC cluster [Yeti](https://www.usgs.gov/core-science-systems/sas/arc/machine-access). You can request an account by emailing them
-#' [XSEDE]( also has a platform available to university and non-profit researchers to request allocations on various supercomputers around the country.  
+#'  
+#'* Many (most?) Universities and Government Agencies either maintain or have access to HPC resources. 
+#'* The USGS has its own HPC cluster [Yeti](https://www.usgs.gov/core-science-systems/sas/arc/machine-access). You can request an account by emailing them
+#'* [XSEDE](https://www.xsede.org/) also has a platform available to university and non-profit researchers to request allocations on various supercomputers around the country.  
 #' Each system should have some documentation about how to securely access resources.   
 #'  
 
@@ -236,9 +244,6 @@ knitr::kable(df)
 #' ```
 #'  
 #'  
-
-
-
 
 #' # Requesting resources from SLURM
 #'  
