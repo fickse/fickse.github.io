@@ -38,12 +38,13 @@ knitr::opts_chunk$set( warning=FALSE, message=FALSE)
 #' # [ >>> Go To Web Tool <<< ](http://webdart.hopto.org:3838/app/webdart) 
 #' 
 #' 
-#' # References
-#' 
-#' [Soil Geomorphic Reference Matching Algorithm](https://pubs.er.usgs.gov/publication/70178097)
-#' [Synthetic Control Algorithm](https://research.google/pubs/pub41854/)
-#' [Soil Maps] (https://pubs.er.usgs.gov/publication/70205612)
-#' [Application example](https://www.sciencedirect.com/science/article/pii/S0303243418303027)
+#' # References  
+#'   
+#' * [Soil Geomorphic Reference Matching Algorithm](https://pubs.er.usgs.gov/publication/70178097)
+#' * [Synthetic Control Algorithm](https://research.google/pubs/pub41854/)
+#' * [Soil Maps](https://pubs.er.usgs.gov/publication/70205612)
+#' * [Application example](https://www.sciencedirect.com/science/article/pii/S0303243418303027)
+#'  
 
 
 #' # how to  
