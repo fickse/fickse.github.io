@@ -12,3 +12,12 @@
     text-decoration: none;
     font-size: 20px;
 }.main a:hover{ color: #f9b4c4; transition : 0.1s;}
+
+
+ 
+.photo{
+   max-width: 1500px; 
+   display: block; 
+   margin-left: auto;
+   margin-right: auto;
+   }
