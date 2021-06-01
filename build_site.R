@@ -59,7 +59,7 @@ pp <- pp[rev(order(pp$Year)),]
 for ( i in 1:nrow(pp)){
 
     f <- file.path('files',pp$pdf[i])
-    string <- paste0('<li><a href=', f, '>', pp$Citation[i], '</a>')
+    string <- paste0('<li><a href=', f, '.pdf>', pp$Citation[i], '</a>')
     strings <- c(strings, string)
 }
 
