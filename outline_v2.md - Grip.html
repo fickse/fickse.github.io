@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>outline_v2.md - Grip</title>
+  <link rel="icon" href="/__/grip/static/favicon.ico" />
+  <link rel="stylesheet" href="/__/grip/asset/dark_tritanopia-2171ea0f078b.css" />
+  <link rel="stylesheet" href="/__/grip/asset/global-fc8c79268a3a.css" />
+  <link rel="stylesheet" href="/__/grip/asset/code-3d7b701fc6eb.css" />
+  <link rel="stylesheet" href="/__/grip/asset/dark_dimmed-0adfa28f0e68.css" />
+  <link rel="stylesheet" href="/__/grip/asset/dark_high_contrast-1c8575b36644.css" />
+  <link rel="stylesheet" href="/__/grip/asset/light-5178aee0ee76.css" />
+  <link rel="stylesheet" href="/__/grip/asset/light_tritanopia-cdd88f146bf7.css" />
+  <link rel="stylesheet" href="/__/grip/asset/github-f242eeb09f7e.css" />
+  <link rel="stylesheet" href="/__/grip/asset/dark_colorblind-5113d2be20b0.css" />
+  <link rel="stylesheet" href="/__/grip/asset/light_colorblind-c96add742484.css" />
+  <link rel="stylesheet" href="/__/grip/asset/dark-217d4f9c8e70.css" />
+  <link rel="stylesheet" href="/__/grip/asset/primer-0e158a2f5ddd.css" />
+  <link rel="stylesheet" href="/__/grip/asset/light_high_contrast-290f92f5e867.css" />
+  <link rel="stylesheet" href="/__/grip/static/octicons/octicons.css" />
+  <style>
+    /* Page tweaks */
+    .preview-page {
+      margin-top: 64px;
+      margin-bottom: 21px;
+    }
+    /* User-content tweaks */
+    .timeline-comment-wrapper > .timeline-comment:after,
+    .timeline-comment-wrapper > .timeline-comment:before {
+      content: none;
+    }
+    /* User-content overrides */
+    .discussion-timeline.wide {
+      width: 920px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div id="preview-page" class="preview-page" data-autorefresh-url="/__/grip/refresh/">
+    <main id="js-repo-pjax-container">
+      <div class="clearfix new-discussion-timeline container-xl px-3 px-md-4 px-lg-5">
+        <div class="repository-content">
+          <div class="clearfix">
+            <div class="Layout Layout--flowRow-until-md Layout--sidebarPosition-end Layout--sidebarPosition-flowRow-end">
+              <div class="Layout-main">
+
+                
+
+                  <div id="readme" class="Box md Box--responsive">
+                    
+                      <div class="Box-header d-flex border-bottom-0 flex-items-center flex-justify-between color-bg-default rounded-top-2">
+                        <div class="d-flex flex-items-center">
+                          <h2 class="Box-title">
+                            outline_v2.md
+                          </h2>
+                        </div>
+                      </div>
+                    
+                    <div class="Box-body px-5 pb-5">
+                      <article id="grip-content" class="markdown-body entry-content container-lg">
+                        <h1><a id="user-content-getting-started" class="anchor" aria-hidden="true" href="#getting-started"><span aria-hidden="true" class="octicon octicon-link"></span></a>Getting started</h1>
+<p>Intros, expectations, and how the class works in first four slides of the deck</p>
+<h2><a id="user-content-orientation-to-rstudio-and-r" class="anchor" aria-hidden="true" href="#orientation-to-rstudio-and-r"><span aria-hidden="true" class="octicon octicon-link"></span></a>Orientation to RStudio and R</h2>
+<p><em>Note: This section should be as brief and simple as possible so that you get to the fun of ggplot right away.</em></p>
+<ul>
+<li>Various panes</li>
+<li>what's a script vs. the console
+<ul>
+<li>saving work (save code, then the output can be recreated). Try to write code that can be run top-to-bottom to recreate results.</li>
+</ul>
+</li>
+<li>Customize appearance and settings (suggest "save workspace to .Rdata on exit" = never, because your code should be all you need to recreate the data. You want to start from scratch)</li>
+</ul>
+<h2><a id="user-content-bento-version" class="anchor" aria-hidden="true" href="#bento-version"><span aria-hidden="true" class="octicon octicon-link"></span></a>Bento version</h2>
+<ul>
+<li>Adding cells</li>
+<li>changing cell types</li>
+<li>saving checkpoints</li>
+<li>cloning</li>
+<li>file tree</li>
+<li>variable inspector</li>
+<li>color palette/ coding</li>
+<li>figure sizing : options(repr.plot.width)</li>
+<li>number of rows and columns to print in a data frame <code>options(repr.matrix.max.rows = 100, repr.matrix.max.cols = 20</code>
+</li>
+</ul>
+<h2><a id="user-content-environment-setup" class="anchor" aria-hidden="true" href="#environment-setup"><span aria-hidden="true" class="octicon octicon-link"></span></a>Environment setup</h2>
+<p>Need to get data loaded onto your and learners' machines, but don't want to teach pulling or loading data yet. We'll return to these details later. For now:</p>
+<ul>
+<li>Copy the code in r101_v2/learners_first_get_data.R into the live script (attaches packages, pulls, and cleans data). Tell learners to copy and run it without worrying about what it's doing for the moment; if they see what looks like a table pop up in their console, it worked.</li>
+</ul>
+<h2><a id="user-content-pipe--tidyverse-syntax" class="anchor" aria-hidden="true" href="#pipe--tidyverse-syntax"><span aria-hidden="true" class="octicon octicon-link"></span></a>Pipe / tidyverse syntax</h2>
+<ul>
+<li>Confirm with stickies that everyone has <code>analytics_employees</code> in their environment</li>
+<li>Functional-programming syntax that generally starts with the name of the table and passes it to functions
+<ul>
+<li>Use the pipe, <code>%&gt;%</code>, to do that passing: <code>f(d)</code> equivalent to <code>d %&gt;% f()</code>
+</li>
+<li>E.g. data to function: <code>analytics_employees %&gt;% glimpse()</code>
+</li>
+<li>cmd-shift-m (introduce keyboard shortcuts gradually throughout)</li>
+</ul>
+</li>
+</ul>
+<h1><a id="user-content-visualization-with-ggplot" class="anchor" aria-hidden="true" href="#visualization-with-ggplot"><span aria-hidden="true" class="octicon octicon-link"></span></a>Visualization with ggplot</h1>
+<p>Intro Demo: quick overview of syntax and layering</p>
+<ul>
+<li>
+<p>scatterplot direct_reports vs. tenure</p>
+<ul>
+<li>add geom_smooth</li>
+<li>add facet_wrap by role</li>
+</ul>
+</li>
+<li>
+<p>1 numeric (tenure): histogram/density curve</p>
+<ul>
+<li>geom_histogram
+<ul>
+<li>Heed ggplot's "pick better binwidth value" -- try 365, 1.</li>
+<li>Ask, "how to choose binwidth?" (Answer: depends what you're trying to show)</li>
+<li>Show <code>bins = x</code> also</li>
+</ul>
+</li>
+<li>geom_density
+<ul>
+<li>
+<code>adjust = x</code> is analog of binwidth</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>In class exercise: Histogram</strong></p>
+</li>
+<li>
+<p>1 categorical (org): barchart</p>
+<ul>
+<li>How did ggplot know we wanted the count? It guessed, which R often does (e.g. implicit type conversion), convenient, but dangerous. R isn't meant for production.</li>
+</ul>
+</li>
+<li>
+<p>2 categorical (role by org): filled barchart</p>
+<ul>
+<li>Copy previous and add <code>fill = role</code> to previous -- reusing code is awesome, so is ggplot's layer syntax</li>
+<li>Show <code>position = "dodge"</code> (<code>position = "stack"</code> is default)</li>
+<li>Ask: "How to change graph if you wanted to show ratio of IC/manager by org?" Answer: by percent, show <code>position = "fill"</code>
+</li>
+</ul>
+</li>
+<li>
+<p><em>Aside on code readability</em>: Coding is mentally hard, reading and understanding it is at least as hard. Future-you are the primary consumer of your code, so make it easy on your future self:</p>
+<ul>
+<li>Consistent single spaces between variables and operators</li>
+<li>One function per line</li>
+<li>Obvious variable names</li>
+<li>Comments to explain anything non-obvious (demonstrate this throughout the class!)</li>
+</ul>
+</li>
+<li>
+<p>1 categorical, 1 numeric (tenure vs. role)</p>
+<ul>
+<li>Ask: "What kind of plot?" Answer: boxplot. Why not bar or dot chart? Because they summarize; boxplot provides information about distribution within categories.</li>
+<li>Optional: <code>geom_density</code> with <code>fill = role</code> and alpha &lt; 1</li>
+</ul>
+</li>
+<li>
+<p>2 categorical, 1 numeric (adding org to last plot)</p>
+<ul>
+<li><code>fill = org</code></li>
+<li>Ask: when this way vs <code>x = org, fill = role</code>? Answer: Primary comparison is within <code>x</code> / across <code>fill</code> -- think about your primary take home point and make it jump out at the reader
+<ul>
+<li>Show the other way by copying previous code and simply swapping <code>x</code> and <code>fill</code>
+</li>
+</ul>
+</li>
+<li>Contrast <code>aes(fill = role)</code> with <code>geom_boxplot(fill = "green")</code> -- explain <code>aes</code> is used to map variables from the data to plot attributes; ourside <code>aes</code> plot attributes can be fixed.
+<strong>Exercise: Org Level and Tenure</strong>.</li>
+</ul>
+</li>
+<li>
+<p>2 numeric (pto ~ tenure)</p>
+<ul>
+<li>Add <code>scale_y_continuous(limits = c(0, 240))</code>. Show tab completion to figure out how to set scale limits.
+<ul>
+<li>Note that removes data that falls outside limits. Use <code>coord_cartesian(ylim = )</code> to zoom in without removing data.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>2 numeric + 1 categorical (add <code>org</code> to previous plot)</p>
+<ul>
+<li>Ask: "how to add categorical variable?" Try suggestions (color, shape, facet) -- which is most useful?</li>
+<li>Ask: "what's wrong with this plot?" (A: overplotting + hard to see pattern by group)
+<ul>
+<li>Change the size and alpha of points</li>
+<li>Add <code>geom_smooth</code>
+<ul>
+<li>Remove confidence interval around lines. Ask learners to press tab within <code>geom_smooth</code> and find the argument to remove confidence intervals.</li>
+</ul>
+</li>
+<li>Move <code>color = org</code> from <code>ggplot()</code> to <code>geom_point()</code> -- data and aes-mappings can be set for the whole plot in <code>ggplot</code> or for individual layers within their lines.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Adding more categories</p>
+<ul>
+<li>
+<code>facet_wrap(~ role)</code>
+<ul>
+<li>Show <code>scales = "free_y</code>
+</li>
+<li>Show nrow/ncol</li>
+</ul>
+</li>
+<li>
+<code>facet_grid(is_active ~ role)</code>
+<ul>
+<li>Show <code>labeller = label_both</code>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Customization: Show <code>labs(title = , caption = )</code>, <code>scale_color_</code>, <code>theme_bw</code>, and whatever the students are interested in.</p>
+<ul>
+<li>Great to Google how to do something here!</li>
+</ul>
+</li>
+<li>
+<p><code>ggsave</code></p>
+<ul>
+<li>Demo use of <code>height</code>, <code>width</code>, and extensions (png, pdf, etc.)</li>
+</ul>
+</li>
+<li>
+<p>Interactivity with ggplotly</p>
+<ul>
+<li>Detour to demo <code>fbr::with_proxy(install.packages("plotly"))</code>
+<ul>
+<li>Explain packages + install.packages</li>
+<li>Explain what <code>fbr::with_proxy</code> is needed for</li>
+<li>Explain <code>library(plotly)</code>
+</li>
+</ul>
+</li>
+<li>Scatterplot rollup_employee_count vs tenure
+<ul>
+<li>Add <code>ggplotly</code>
+</li>
+</ul>
+</li>
+<li>Want ID on hover: add <code>label = name</code> to ggplot(aes)</li>
+</ul>
+</li>
+<li>
+<p><strong>Exercise: Diamonds</strong></p>
+</li>
+</ul>
+<h1><a id="user-content-fundamentals-data-frames-and-vectors-functions-assignment-etc" class="anchor" aria-hidden="true" href="#fundamentals-data-frames-and-vectors-functions-assignment-etc"><span aria-hidden="true" class="octicon octicon-link"></span></a>Fundamentals: data frames and vectors, functions, assignment, etc.</h1>
+<ul>
+<li>Calculator</li>
+<li>Functions(x, y)
+<ul>
+<li>
+<code>log</code>
+<ul>
+<li>helpfile (<code>?</code>)</li>
+<li>arguments, named and ordered</li>
+</ul>
+</li>
+<li>
+<code>c</code>
+<ul>
+<li>Assign some numbers to <code>x</code>
+</li>
+<li>Reassignment <code>x &lt;- x ^ 2</code>
+</li>
+</ul>
+</li>
+<li>
+<code>log(x)</code>
+<strong>MCQ: Assignment</strong>
+</li>
+</ul>
+</li>
+<li>Vectorization
+<ul>
+<li>
+<code>sum(x)</code> vs <code>sqrt(x)</code>
+</li>
+</ul>
+</li>
+<li>Data frames (collection of vectors; row = observation; col = variable)
+<ul>
+<li>
+<code>glimpse</code>, <code>summary</code>
+</li>
+<li>From Environment pane, click spreadsheet icon to view table</li>
+<li>
+<code>$</code> to pull vector
+<ul>
+<li><code>mean(analytics_employees$tenure)</code></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Logical comparators
+<ul>
+<li>==, &gt;=, etc.</li>
+<li>!, !=</li>
+<li><code>ifelse</code></li>
+<li>
+<code>case_when</code> switch statement for multiple comparisons</li>
+</ul>
+</li>
+<li>Missing values
+<ul>
+<li>
+<code>sum(analytics_employees$pto_remaining_hours)</code> add <code>na.rm = TRUE</code>
+</li>
+<li>
+<code>is.na()</code>, <code>!is.na()</code>
+<strong>Exercise: Discovery, assignment, &amp; manipulation</strong>
+</li>
+</ul>
+</li>
+<li>
+<code>library</code>
+<ul>
+<li><code>install.packages</code></li>
+<li><code>fbr::with_proxy</code></li>
+</ul>
+</li>
+<li>projects
+<ul>
+<li>show how to create</li>
+<li>have everyone create one for this class</li>
+</ul>
+</li>
+<li>i/o
+<ul>
+<li>saveRDS, write_csv</li>
+<li>readRDS, read_csv</li>
+</ul>
+<ul>
+<li>presto</li>
+<li>upload.data.to.hive</li>
+</ul>
+</li>
+</ul>
+<h1><a id="user-content-manipulation-with-dplyr-and-tidyr" class="anchor" aria-hidden="true" href="#manipulation-with-dplyr-and-tidyr"><span aria-hidden="true" class="octicon octicon-link"></span></a>Manipulation with dplyr and tidyr</h1>
+<p><strong>Slide: SQL &lt;-&gt; dplyr mapping</strong></p>
+<h2><a id="user-content-column-operators" class="anchor" aria-hidden="true" href="#column-operators"><span aria-hidden="true" class="octicon octicon-link"></span></a>Column operators</h2>
+<ul>
+<li>
+<code>select</code>
+<ul>
+<li>One column by name. Note the functional programming pipe: <code>data_frame %&gt;% function()</code>
+</li>
+<li>Several columns by name</li>
+<li>
+<code>- col_name</code> to exclude column</li>
+<li><code>rename</code></li>
+</ul>
+</li>
+<li>
+<code>mutate</code>
+<ul>
+<li>pto_days_available = pto_remaining_hours / 8 (Note you'll have to select these columns for them to show)
+<ul>
+<li>demo <code>floor</code> if you want</li>
+</ul>
+</li>
+<li>Create two variables in one <code>mutate</code> call. Copy above, add: <code>title = paste(org, role)</code>
+</li>
+<li>Column replacement and type conversion: <code>mutate(hire_date = as.Date(hire_date)</code>
+</li>
+</ul>
+</li>
+</ul>
+<h2><a id="user-content-row-operators" class="anchor" aria-hidden="true" href="#row-operators"><span aria-hidden="true" class="octicon octicon-link"></span></a>Row operators</h2>
+<ul>
+<li>
+<code>arrange</code>
+<ul>
+<li><code>desc</code></li>
+<li>multiple variables (first should be category)</li>
+</ul>
+</li>
+<li>
+<code>filter</code>
+<ul>
+<li>Individual logical test</li>
+<li>Multiple logical tests linked by <code>&amp;</code> vs <code>|</code>
+</li>
+</ul>
+</li>
+<li>Demonstrate a longer pipe with multiple verbs
+<ul>
+<li>Note unlike sql, code is performed in order written, so you have greater control over how filtering is performed</li>
+</ul>
+</li>
+<li>
+<code>top_n(5, direct_reports)</code>
+<strong>Exercise: Manipulation</strong>
+</li>
+</ul>
+<h2><a id="user-content-row-aggregation" class="anchor" aria-hidden="true" href="#row-aggregation"><span aria-hidden="true" class="octicon octicon-link"></span></a>Row aggregation</h2>
+<ul>
+<li>
+<code>group_by</code> &amp; <code>summarize</code>
+<ul>
+<li>group by role, calculate average tenure
+<ul>
+<li>Note <code>summarize</code> syntax is identical to <code>mutate</code>
+</li>
+<li>Add more columns in summarize: max, min, sd</li>
+<li>Advanced: Nest conditional statement inside aggregation function e.g. <code>summarise(us_proportion=mean(country == 'US'))</code>.</li>
+</ul>
+</li>
+<li>Multiple groups: <code>group_by(role, is_active)</code>
+</li>
+</ul>
+</li>
+<li>
+<code>count</code>: <code>count(x)</code> short cut for <code>group_by(x) %&gt;% summarize(n = n())</code>. Analog of <code>SELECT x, COUNT(1) FROM table GROUP BY x</code>
+<ul>
+<li><code>sort = TRUE</code></li>
+<li><code>wt = pto_remaining_hours</code></li>
+</ul>
+</li>
+<li>To count within groups: <code>group_by(x) %&gt;% summarize(n = n_distinct(y))</code>. Analog of <code>SELECT x, COUNT(DISTINCT Y) FROM table GROUP BY x</code>
+</li>
+<li>
+<code>across(&lt;cols&gt;, &lt;fns&gt;)</code> inside <code>summarize</code> to apply aggregation function(s) to multiple columns
+<ul>
+<li>
+<code>c(col1, col2)</code> to manually select columns or tidy selector</li>
+<li>
+<code>where(is.numeric)</code> predicate functions e.g. select numeric columns
+<ul>
+<li>Advanced: We can also supply multiple functions in a named list e.g. <code>c(mean_val=mean, sd_val=sd, max_val=max, min_val=min)</code>
+<strong>Exercise: A lot of what we do is counting</strong>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h1><a id="user-content-pulling-data-with-presto" class="anchor" aria-hidden="true" href="#pulling-data-with-presto"><span aria-hidden="true" class="octicon octicon-link"></span></a>Pulling data with <code>presto</code>
+</h1>
+<p>Note: This is tricky; you have to switch between your devserver and local machine.</p>
+<ul>
+<li>You're going to pull data using <code>fbr::presto</code>. First, write and test this query in daiquery or however you would in your normal workflow</li>
+<li>Switch to RStudio Server (explain why: to access the database)</li>
+<li>From the lastest ds in table <code>dim_fsc_rdv_buildings</code> in the <code>bizapps</code> namespace, pull the columns: code, city, country, timezone, closed, and name</li>
+<li>Show how it works on your devserver</li>
+<li>Paste the <code>presto</code> code into your local RStudio so students can copy it</li>
+<li>On your local RStudio, load the data with <code>read_csv</code> and briefly explain <code>read_csv</code>
+</li>
+<li>Have the students use <code>presto</code> from <code>fbr</code> to pull the data.
+<ul>
+<li>Pause to make sure every student has the data</li>
+</ul>
+</li>
+</ul>
+<h1><a id="user-content-intermediate-manipulation" class="anchor" aria-hidden="true" href="#intermediate-manipulation"><span aria-hidden="true" class="octicon octicon-link"></span></a>Intermediate manipulation</h1>
+<h2><a id="user-content-joins" class="anchor" aria-hidden="true" href="#joins"><span aria-hidden="true" class="octicon octicon-link"></span></a>Joins</h2>
+<ul>
+<li>Should usually do in SQL before bringing data into R, but R does have this functionality</li>
+<li>Demo joining the buildings table to the buildings column in analytics_employees</li>
+</ul>
+<p><strong>Exercise: Joins</strong></p>
+<h2><a id="user-content-reshaping" class="anchor" aria-hidden="true" href="#reshaping"><span aria-hidden="true" class="octicon octicon-link"></span></a>Reshaping</h2>
+<ul>
+<li>
+<code>pivot_longer</code> -- explain what it does wide -&gt; long
+<ul>
+<li>Why? Want tidy data: 1 column/variable + 1 row/observation</li>
+<li>Handy trick: Quickly examine distributions of many variables by gathering them.
+<ul>
+<li>E.g. <code>pivot_longer</code> continuous variables from <code>analytics_employees</code>, density plot faceted by variable</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h2><a id="user-content-dates-and-time" class="anchor" aria-hidden="true" href="#dates-and-time"><span aria-hidden="true" class="octicon octicon-link"></span></a>Dates and time</h2>
+<ul>
+<li>Dates and time: <code>lubridate</code>
+<ul>
+<li>Need to <code>library(lubridate)</code> -- comes with tidyverse but isn't attached by default</li>
+<li>Demo getting year and day of week from date</li>
+<li>date difference / add</li>
+<li>Show <code>Sys.Date()</code> and <code>as.Date()</code>
+</li>
+</ul>
+</li>
+</ul>
+<h2><a id="user-content-strings" class="anchor" aria-hidden="true" href="#strings"><span aria-hidden="true" class="octicon octicon-link"></span></a>Strings</h2>
+<ul>
+<li>stringr: All your text and regular expression needs
+<ul>
+<li>
+<code>str_sub</code>: <code>mutate(city = str_sub(building, 1, 3))</code>
+</li>
+<li>
+<code>filter</code> on <code>str_detect(name, "xxx")</code>. Demo regex if you want</li>
+<li>where to go for more: Google to find all RStudio's amazing cheatsheets
+<strong>Exercise: Strings &amp; Dates</strong>
+</li>
+</ul>
+</li>
+</ul>
+<h1><a id="user-content-return-to-visualization" class="anchor" aria-hidden="true" href="#return-to-visualization"><span aria-hidden="true" class="octicon octicon-link"></span></a>Return to visualization</h1>
+<p>Now that we can manipulate data, we can do a few more thinigs with ggplot</p>
+<ul>
+<li>geom_raster: group by 2 variables, calculate numeric summary statistic, map grouping variables to x and y and the summary stat to fill
+<ul>
+<li>Introduce <code>scale_fill_viridis_c</code> -- friendly to all color blind patters and perceptually uniform</li>
+</ul>
+</li>
+<li>timeseries: geom_line
+<ul>
+<li>count by hire_date and plot
+<ul>
+<li>contrast pre-counting in dplyr (preferred) vs using a stat: <code>geom_line(stat="count")</code>
+</li>
+<li><code>scale_x_date(date_breaks = 'year', date_labels='%Y')</code></li>
+</ul>
+</li>
+<li>add another grouping variable and map to color or linetype</li>
+<li>ggplotly to make interactive</li>
+</ul>
+</li>
+<li>Annotation
+<ul>
+<li>add geom_vline to timeseries plot</li>
+<li>add label with <code>annotate("text")</code>
+<strong>Exercise: Putting some pieces together</strong>
+</li>
+</ul>
+</li>
+</ul>
+<h1><a id="user-content-modeling-if-time-allows" class="anchor" aria-hidden="true" href="#modeling-if-time-allows"><span aria-hidden="true" class="octicon octicon-link"></span></a>Modeling (if time allows)</h1>
+<p><strong>Judgement call!</strong> Take stock of how much time you have left and how mentally exhausted learners are now. RMarkdown and ANP is more important than modeling -- leave at least 75 minutes for a good break, the RMarkdown section, and the last exercise. If that means skipping or going very quickly over modeling, that's fine.</p>
+<ul>
+<li>lm
+<ul>
+<li><code>pto_remaining_hours ~ tenure</code></li>
+<li>Explain DV ~ IV  syntax</li>
+<li><code>summary(model)</code></li>
+<li><code>pto_remaining_hours ~ tenure + is_active</code></li>
+<li><code>pto_remaining_hours ~ tenure * is_active</code></li>
+</ul>
+</li>
+<li>OPTIONAL: ggplot the above relationships with <code>geom_smooth(method = "lm")</code>, showing how to capture the interaction (color across layers)</li>
+<li>glm
+<ul>
+<li>is_active ~ role + org</li>
+</ul>
+</li>
+<li>
+<code>predict</code> (Probably skip this! Only do if time and energy really allow)
+<ul>
+<li>counter-factual predictions: why useful?</li>
+<li>create a grid with <code>crossing</code>
+</li>
+<li>Add predictions</li>
+<li>plot predictions</li>
+</ul>
+</li>
+</ul>
+<h1><a id="user-content-rmarkdown-and-anp" class="anchor" aria-hidden="true" href="#rmarkdown-and-anp"><span aria-hidden="true" class="octicon octicon-link"></span></a>Rmarkdown and ANP</h1>
+<ul>
+<li>Motivation for Rmd + ANP
+<ul>
+<li>E.g. -- shows writing, query, ggplot, dplyr <a href="https://our.internmc.facebook.com/intern/anp/view/?id=162038" rel="nofollow">https://our.internmc.facebook.com/intern/anp/view/?id=162038</a>
+</li>
+</ul>
+</li>
+<li>
+<em>Switch to RStudio Server</em>: Create new Rmd from ANP template (file -&gt; new -&gt; Rmarkdown -&gt; From template, ANP document)
+<ul>
+<li>Walk through YAML metadata at top, written sections, code chunks</li>
+</ul>
+</li>
+<li>Add some writing and some R code</li>
+<li>Publish to ANP</li>
+</ul>
+<p><strong>Final Exercise: Diamonds revisited</strong></p>
+<h1><a id="user-content-todo-appendix-of-other-cool-stuff" class="anchor" aria-hidden="true" href="#todo-appendix-of-other-cool-stuff"><span aria-hidden="true" class="octicon octicon-link"></span></a>TODO: Appendix of other cool stuff</h1>
+<p>When instructors want to add something there isn't space for</p>
+<h1><a id="user-content-todo-closing" class="anchor" aria-hidden="true" href="#todo-closing"><span aria-hidden="true" class="octicon octicon-link"></span></a>TODO: Closing</h1>
+<ul>
+<li>When R vs dai?</li>
+<li>Limitations of R and workarounds (memory, sampling, summarizing)</li>
+<li>
+</li></ul>
+
+                      </article>
+                    </div>
+                  </div>
+
+                
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  </div><script>
+    function showCanonicalImages() {
+      var images = document.getElementsByTagName('img');
+      if (!images) {
+        return;
+      }
+      for (var index = 0; index < images.length; index++) {
+        var image = images[index];
+        if (image.getAttribute('data-canonical-src') && image.src !== image.getAttribute('data-canonical-src')) {
+          image.src = image.getAttribute('data-canonical-src');
+        }
+      }
+    }
+
+    function scrollToHash() {
+      if (location.hash && !document.querySelector(':target')) {
+        var element = document.getElementById('user-content-' + location.hash.slice(1));
+        if (element) {
+           element.scrollIntoView();
+        }
+      }
+    }
+
+    function autorefreshContent(eventSourceUrl) {
+      var initialTitle = document.title;
+      var contentElement = document.getElementById('grip-content');
+      var source = new EventSource(eventSourceUrl);
+      var isRendering = false;
+
+      source.onmessage = function(ev) {
+        var msg = JSON.parse(ev.data);
+        if (msg.updating) {
+          isRendering = true;
+          document.title = '(Rendering) ' + document.title;
+        } else {
+          isRendering = false;
+          document.title = initialTitle;
+          contentElement.innerHTML = msg.content;
+          showCanonicalImages();
+        }
+      }
+
+      source.onerror = function(e) {
+        if (e.readyState === EventSource.CLOSED && isRendering) {
+          isRendering = false;
+          document.title = initialTitle;
+        }
+      }
+    }
+
+    window.onhashchange = function() {
+      scrollToHash();
+    }
+
+    window.onload = function() {
+      scrollToHash();
+    }
+
+    showCanonicalImages();
+
+    var autorefreshUrl = document.getElementById('preview-page').getAttribute('data-autorefresh-url');
+    if (autorefreshUrl) {
+      autorefreshContent(autorefreshUrl);
+    }
+  </script>
+</body>
+</html>
