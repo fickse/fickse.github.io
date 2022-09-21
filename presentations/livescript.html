@@ -1,0 +1,1080 @@
+<pre class="hljs" style="display: block; overflow-x: auto; padding: 0.5em; background: rgb(240, 240, 240); color: rgb(68, 68, 68);"><span class="hljs-comment" style="color: rgb(136, 136, 136);"># Get Data</span>
+<span class="hljs-comment" style="color: rgb(136, 136, 136);">##############</span>
+<span class="hljs-keyword" style="font-weight: 700;">if</span> (!<span class="hljs-keyword" style="font-weight: 700;">require</span>(tidyverse)) {
+    fbr::with_proxy(install.packages(<span class="hljs-string" style="color: rgb(136, 0, 0);">"tidyverse"</span>))
+}
+<span class="hljs-keyword" style="font-weight: 700;">library</span>(tidyverse)
+<span class="hljs-keyword" style="font-weight: 700;">library</span>(fbr)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Day 1 data:</span>
+days_back &lt;- <span class="hljs-number" style="color: rgb(136, 0, 0);">7</span>
+analytics_employees &lt;- presto(
+    glue::glue(
+        <span class="hljs-string" style="color: rgb(136, 0, 0);">"select
+            d.employee_id,
+            d.preferred_name,
+            d.work_email,
+            d.business_title,
+            d.country_code,
+            d.building_id,
+            d.hire_date,
+            d.termination_date,
+            d.manager_employee_id,
+            d.employee_type,
+            h.org_level,
+            h.rollup_employee_count,
+            d.direct_reports,
+            d.direct_reports_intern,
+            d.direct_reports_contingent,
+            p.pto_remaining_hours
+        from d_employee d
+        left join (
+            select *
+            from d_employee_manager_hierarchy
+            where ds = '{ds}'
+        ) h
+            on d.employee_id = h.employee_id
+        left join (
+            select *
+            from d_employee_pto_balance
+            where ds = '{ds}'
+        ) p
+            on d.employee_id = p.employee_id
+        where d.ds = '{ds}'"</span>,
+        ds = Sys.Date() - days_back
+    )
+    , <span class="hljs-string" style="color: rgb(136, 0, 0);">"hr"</span>)
+analytics_employees &lt;-
+    analytics_employees %&gt;%
+    mutate(
+        org = case_when(
+            str_detect(business_title, <span class="hljs-string" style="color: rgb(136, 0, 0);">"Data Scien"</span>) ~ <span class="hljs-string" style="color: rgb(136, 0, 0);">"DS"</span>,
+            str_detect(business_title, <span class="hljs-string" style="color: rgb(136, 0, 0);">"Data Eng"</span>) ~ <span class="hljs-string" style="color: rgb(136, 0, 0);">"DE"</span>,
+            str_detect(business_title, <span class="hljs-string" style="color: rgb(136, 0, 0);">"Product Exp"</span>) ~ <span class="hljs-string" style="color: rgb(136, 0, 0);">"PXA"</span>,
+            <span class="hljs-literal" style="color: rgb(120, 169, 96);">TRUE</span> ~ <span class="hljs-string" style="color: rgb(136, 0, 0);">"cut"</span>
+        ),
+        role = ifelse(str_detect(business_title, <span class="hljs-string" style="color: rgb(136, 0, 0);">"(Manag)|(Direct)"</span>), <span class="hljs-string" style="color: rgb(136, 0, 0);">"Manager"</span>, <span class="hljs-string" style="color: rgb(136, 0, 0);">"IC"</span>)
+    ) %&gt;%
+    filter(org != <span class="hljs-string" style="color: rgb(136, 0, 0);">"cut"</span>,
+           !is.na(country_code)) %&gt;%
+    mutate(country_code = fct_lump(country_code, n = <span class="hljs-number" style="color: rgb(136, 0, 0);">6</span>)) %&gt;%
+    filter(country_code != <span class="hljs-string" style="color: rgb(136, 0, 0);">"Other"</span>) %&gt;%
+    mutate(tenure =
+               coalesce(as.Date(termination_date), Sys.Date() - days_back) %&gt;%
+               difftime(hire_date) %&gt;%
+               lubridate::as.period() %&gt;%
+               as.numeric(unit = <span class="hljs-string" style="color: rgb(136, 0, 0);">"days"</span>)
+    ) %&gt;%
+    filter(employee_type %<span class="hljs-keyword" style="font-weight: 700;">in</span>% c(<span class="hljs-string" style="color: rgb(136, 0, 0);">"Intern"</span>, <span class="hljs-string" style="color: rgb(136, 0, 0);">"Regular"</span>)) %&gt;%
+    transmute(
+        employee_id
+        , name = preferred_name
+        , org
+        , role
+        , employee_type
+        , country = country_code
+        , building = building_id
+        , hire_date
+        , is_active = as.integer(is.na(termination_date))
+        , tenure
+        , direct_reports
+        , rollup_employee_count
+        , org_level
+        , pto_remaining_hours
+        , manager_employee_id
+    )
+save(analytics_employees, file = <span class="hljs-string" style="color: rgb(136, 0, 0);">"analytics_employees.RDA"</span>)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Data 2 data:</span>
+buildings &lt;-
+    presto(<span class="hljs-string" style="color: rgb(136, 0, 0);">"
+        SELECT
+            code,
+            city,
+            country,
+            timezone,
+            closed,
+            name
+        FROM dim_fsc_rdv_buildings
+        WHERE
+            ds = '&lt;LATEST_DS:dim_fsc_rdv_buildings&gt;'"</span>,
+           <span class="hljs-string" style="color: rgb(136, 0, 0);">"bizapps"</span>)
+write_csv(buildings, <span class="hljs-string" style="color: rgb(136, 0, 0);">"buildings.csv"</span>)
+
+message(<span class="hljs-string" style="color: rgb(136, 0, 0);">"If a table appears below, you have the data for the class..."</span>)
+analytics_employees
+
+glimpse(analytics_employees)
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># equivalently</span>
+analytics_employees %&gt;% 
+    glimpse()
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Data visualization</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = tenure, y = direct_reports)) + 
+    geom_point() +
+    geom_smooth() + 
+    facet_wrap(vars(org))
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Histogram</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = tenure)) +
+    geom_histogram()
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Override default number of bins</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = tenure)) +
+    geom_histogram(binwidth = <span class="hljs-number" style="color: rgb(136, 0, 0);">365</span>)
+analytics_employees %&gt;% 
+    ggplot(aes(x = tenure)) +
+    geom_histogram(bins = <span class="hljs-number" style="color: rgb(136, 0, 0);">100</span>)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Density plot</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = tenure)) +
+    geom_density(adjust = <span class="hljs-number" style="color: rgb(136, 0, 0);">10</span>)
+
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># EXERCISE</span>
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Copy the instructor's code and modify to make a histogram of remaining PTO hours</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = pto_remaining_hours)) +
+    geom_histogram()
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># How (in words) would you summarize the distribution?</span>
+<span class="hljs-comment" style="color: rgb(136, 136, 136);">#  Change the bin width; does the summary hold?</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = pto_remaining_hours)) +
+    geom_histogram(binwidth = <span class="hljs-number" style="color: rgb(136, 0, 0);">8</span>)
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Bonus 1: Plot only positive values of remaining PTO</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = pto_remaining_hours)) +
+    geom_histogram(binwidth = <span class="hljs-number" style="color: rgb(136, 0, 0);">8</span>) + 
+    scale_x_continuous(limits = c(<span class="hljs-number" style="color: rgb(136, 0, 0);">0</span>, <span class="hljs-literal" style="color: rgb(120, 169, 96);">NA</span>))
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Bonus 2: Make the x-axis label days instead of hours</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = pto_remaining_hours)) +
+    geom_histogram(binwidth = <span class="hljs-number" style="color: rgb(136, 0, 0);">8</span>) + 
+    scale_x_continuous(
+        limits = c(-<span class="hljs-number" style="color: rgb(136, 0, 0);">10</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">31</span> * <span class="hljs-number" style="color: rgb(136, 0, 0);">8</span>), 
+        labels = <span class="hljs-keyword" style="font-weight: 700;">function</span>(x) x / <span class="hljs-number" style="color: rgb(136, 0, 0);">8</span>, 
+        name = <span class="hljs-string" style="color: rgb(136, 0, 0);">"PTO Days Remaining"</span>
+    )
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># 1 categorical variable</span>
+analytics_employees %&gt;% 
+    glimpse()
+analytics_employees %&gt;% 
+    ggplot(aes(x = org)) + 
+    geom_bar(stat = <span class="hljs-string" style="color: rgb(136, 0, 0);">"count"</span>)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># 2 categorical variables</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = org, fill = role)) + 
+    geom_bar(position = <span class="hljs-string" style="color: rgb(136, 0, 0);">"fill"</span>) + 
+    scale_y_continuous(name = <span class="hljs-string" style="color: rgb(136, 0, 0);">"Percent"</span>)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Default position</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = org, fill = role)) + 
+    geom_bar(position = <span class="hljs-string" style="color: rgb(136, 0, 0);">"stack"</span>) 
+
+analytics_employees %&gt;% 
+    ggplot(aes(x = org, fill = role)) + 
+    geom_bar(position = <span class="hljs-string" style="color: rgb(136, 0, 0);">"dodge"</span>) 
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># flip x and fill mapping to create a different comparison</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = role, fill = org)) + 
+    geom_bar(position = <span class="hljs-string" style="color: rgb(136, 0, 0);">"dodge"</span>) 
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Tenure vs role</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = role, y = tenure)) + 
+    geom_boxplot()
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Alternatively</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = tenure, fill = role)) + 
+    geom_density(alpha = <span class="hljs-number" style="color: rgb(136, 0, 0);">.5</span>, adjust = <span class="hljs-number" style="color: rgb(136, 0, 0);">2</span>)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Adding another category</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = org, y = tenure, fill = role)) + 
+    geom_boxplot()
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Inside vs. outside aes()</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = org, y = tenure)) + 
+    geom_boxplot(fill = <span class="hljs-string" style="color: rgb(136, 0, 0);">"darkgreen"</span>)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Mapping aes to whole plot vs. individual layers</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = org, y = tenure)) + 
+    geom_boxplot(fill = <span class="hljs-string" style="color: rgb(136, 0, 0);">"darkgreen"</span>) +
+    geom_point()
+
+analytics_employees %&gt;% 
+    ggplot(aes(x = tenure, y = direct_reports)) + 
+    geom_point(aes(color = org)) +
+    geom_smooth() 
+
+analytics_employees %&gt;% 
+    ggplot(aes(x = tenure, y = direct_reports, color = org)) + 
+    geom_point() +
+    geom_smooth() 
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># EX</span>
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># What's the relationship between tenure and org level?</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = org_level, y = tenure, group = org_level)) + 
+    geom_boxplot()
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># alternative to group = ... factor</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = factor(org_level), y = tenure)) + 
+    geom_boxplot()
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Bonus 1: How does that vary by IC vs. manager?</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = org_level, y = tenure, group = interaction(org_level, role), fill = role)) + 
+    geom_boxplot()
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Bonus 2: Include in the plot information about how many employees are in each category</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = org_level, y = tenure, group = interaction(org_level, role), fill = role)) + 
+    geom_boxplot(varwidth = <span class="hljs-literal" style="color: rgb(120, 169, 96);">TRUE</span>)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># R function documentation</span>
+?geom_boxplot
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># PTO vs Tenure</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = tenure, y = pto_remaining_hours)) + 
+    geom_point()
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Deal with overplotting</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = tenure, y = pto_remaining_hours)) + 
+    geom_point(alpha = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>/<span class="hljs-number" style="color: rgb(136, 0, 0);">2</span>, size = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>/<span class="hljs-number" style="color: rgb(136, 0, 0);">3</span>) + 
+    scale_y_continuous(limits = c(-<span class="hljs-number" style="color: rgb(136, 0, 0);">40</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">240</span>))
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># tenure in years</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = tenure / <span class="hljs-number" style="color: rgb(136, 0, 0);">365</span>, y = pto_remaining_hours)) + 
+    geom_point(alpha = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>/<span class="hljs-number" style="color: rgb(136, 0, 0);">2</span>, size = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>/<span class="hljs-number" style="color: rgb(136, 0, 0);">3</span>) + 
+    scale_y_continuous(limits = c(-<span class="hljs-number" style="color: rgb(136, 0, 0);">40</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">240</span>))
+
+analytics_employees %&gt;% 
+    ggplot(aes(x = tenure, y = pto_remaining_hours)) + 
+    geom_point(alpha = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>/<span class="hljs-number" style="color: rgb(136, 0, 0);">2</span>, size = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>/<span class="hljs-number" style="color: rgb(136, 0, 0);">3</span>) + 
+    scale_y_continuous(limits = c(-<span class="hljs-number" style="color: rgb(136, 0, 0);">40</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">240</span>)) + 
+    scale_x_continuous(
+        labels = <span class="hljs-keyword" style="font-weight: 700;">function</span>(x) x / <span class="hljs-number" style="color: rgb(136, 0, 0);">365</span>,
+        breaks = c(<span class="hljs-number" style="color: rgb(136, 0, 0);">0</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">2.5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">7.5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">10</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">12.5</span>) * <span class="hljs-number" style="color: rgb(136, 0, 0);">365</span>
+    ) + 
+    geom_smooth(method = <span class="hljs-string" style="color: rgb(136, 0, 0);">"lm"</span>)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Fit line on all points and specify y-axis limits</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = tenure, y = pto_remaining_hours)) + 
+    geom_point(alpha = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>/<span class="hljs-number" style="color: rgb(136, 0, 0);">2</span>, size = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>/<span class="hljs-number" style="color: rgb(136, 0, 0);">3</span>) + 
+    <span class="hljs-comment" style="color: rgb(136, 136, 136);"># keep all points but specify the plot range:</span>
+    coord_cartesian(ylim = c(-<span class="hljs-number" style="color: rgb(136, 0, 0);">40</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">240</span>)) +  
+    scale_x_continuous(
+        labels = <span class="hljs-keyword" style="font-weight: 700;">function</span>(x) x / <span class="hljs-number" style="color: rgb(136, 0, 0);">365</span>,
+        breaks = c(<span class="hljs-number" style="color: rgb(136, 0, 0);">0</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">2.5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">7.5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">10</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">12.5</span>) * <span class="hljs-number" style="color: rgb(136, 0, 0);">365</span>
+    ) + 
+    geom_smooth(method = <span class="hljs-string" style="color: rgb(136, 0, 0);">"lm"</span>)
+
+summary(analytics_employees)
+
+analytics_employees %&gt;% 
+    ggplot(aes(x = tenure, y = pto_remaining_hours, color = org)) + 
+    geom_point(alpha = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>/<span class="hljs-number" style="color: rgb(136, 0, 0);">2</span>, size = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>/<span class="hljs-number" style="color: rgb(136, 0, 0);">3</span>) + 
+    <span class="hljs-comment" style="color: rgb(136, 136, 136);"># keep all points but specify the plot range:</span>
+    coord_cartesian(ylim = c(-<span class="hljs-number" style="color: rgb(136, 0, 0);">40</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">240</span>)) +  
+    scale_x_continuous(
+        labels = <span class="hljs-keyword" style="font-weight: 700;">function</span>(x) x / <span class="hljs-number" style="color: rgb(136, 0, 0);">365</span>,
+        breaks = c(<span class="hljs-number" style="color: rgb(136, 0, 0);">0</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">2.5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">7.5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">10</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">12.5</span>) * <span class="hljs-number" style="color: rgb(136, 0, 0);">365</span>
+    ) + 
+    geom_smooth(method = <span class="hljs-string" style="color: rgb(136, 0, 0);">"lm"</span>)
+
+analytics_employees %&gt;% 
+    ggplot(aes(x = tenure, y = pto_remaining_hours)) + 
+    geom_point(alpha = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>/<span class="hljs-number" style="color: rgb(136, 0, 0);">2</span>, size = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>/<span class="hljs-number" style="color: rgb(136, 0, 0);">3</span>) + 
+    <span class="hljs-comment" style="color: rgb(136, 136, 136);"># keep all points but specify the plot range:</span>
+    coord_cartesian(ylim = c(-<span class="hljs-number" style="color: rgb(136, 0, 0);">40</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">240</span>)) +  
+    scale_x_continuous(
+        labels = <span class="hljs-keyword" style="font-weight: 700;">function</span>(x) x / <span class="hljs-number" style="color: rgb(136, 0, 0);">365</span>,
+        breaks = c(<span class="hljs-number" style="color: rgb(136, 0, 0);">0</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">2.5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">7.5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">10</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">12.5</span>) * <span class="hljs-number" style="color: rgb(136, 0, 0);">365</span>
+    ) + 
+    geom_smooth(method = <span class="hljs-string" style="color: rgb(136, 0, 0);">"lm"</span>) + 
+    facet_wrap(vars(org))
+
+analytics_employees %&gt;% 
+    ggplot(aes(x = tenure, y = pto_remaining_hours)) + 
+    geom_point(alpha = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>/<span class="hljs-number" style="color: rgb(136, 0, 0);">2</span>, size = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>/<span class="hljs-number" style="color: rgb(136, 0, 0);">3</span>) + 
+    <span class="hljs-comment" style="color: rgb(136, 136, 136);"># keep all points but specify the plot range:</span>
+    coord_cartesian(ylim = c(-<span class="hljs-number" style="color: rgb(136, 0, 0);">40</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">240</span>)) +  
+    scale_x_continuous(
+        labels = <span class="hljs-keyword" style="font-weight: 700;">function</span>(x) x / <span class="hljs-number" style="color: rgb(136, 0, 0);">365</span>,
+        breaks = c(<span class="hljs-number" style="color: rgb(136, 0, 0);">0</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">2.5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">7.5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">10</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">12.5</span>) * <span class="hljs-number" style="color: rgb(136, 0, 0);">365</span>
+    ) + 
+    geom_smooth(method = <span class="hljs-string" style="color: rgb(136, 0, 0);">"lm"</span>) + 
+    facet_wrap(vars(org), ncol = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>, scales = <span class="hljs-string" style="color: rgb(136, 0, 0);">"free_x"</span>, labeller = label_both)
+
+analytics_employees %&gt;% 
+    ggplot(aes(x = tenure, y = pto_remaining_hours)) + 
+    geom_point(alpha = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>/<span class="hljs-number" style="color: rgb(136, 0, 0);">2</span>, size = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>/<span class="hljs-number" style="color: rgb(136, 0, 0);">3</span>) + 
+    <span class="hljs-comment" style="color: rgb(136, 136, 136);"># keep all points but specify the plot range:</span>
+    coord_cartesian(ylim = c(-<span class="hljs-number" style="color: rgb(136, 0, 0);">40</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">240</span>)) +  
+    scale_x_continuous(
+        labels = <span class="hljs-keyword" style="font-weight: 700;">function</span>(x) x / <span class="hljs-number" style="color: rgb(136, 0, 0);">365</span>,
+        breaks = c(<span class="hljs-number" style="color: rgb(136, 0, 0);">0</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">2.5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">7.5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">10</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">12.5</span>) * <span class="hljs-number" style="color: rgb(136, 0, 0);">365</span>
+    ) + 
+    geom_smooth(method = <span class="hljs-string" style="color: rgb(136, 0, 0);">"lm"</span>)  + 
+    facet_grid(org ~ role, labeller = label_both)
+
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Customization and appearance</span>
+
+analytics_employees %&gt;% 
+    ggplot(aes(x = tenure, y = pto_remaining_hours, color = org)) + 
+    geom_point(alpha = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>/<span class="hljs-number" style="color: rgb(136, 0, 0);">2</span>, size = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>/<span class="hljs-number" style="color: rgb(136, 0, 0);">3</span>) + 
+    <span class="hljs-comment" style="color: rgb(136, 136, 136);"># keep all points but specify the plot range:</span>
+    coord_cartesian(ylim = c(-<span class="hljs-number" style="color: rgb(136, 0, 0);">40</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">240</span>)) +  
+    scale_x_continuous(
+        labels = <span class="hljs-keyword" style="font-weight: 700;">function</span>(x) x / <span class="hljs-number" style="color: rgb(136, 0, 0);">365</span>,
+        breaks = c(<span class="hljs-number" style="color: rgb(136, 0, 0);">0</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">2.5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">7.5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">10</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">12.5</span>) * <span class="hljs-number" style="color: rgb(136, 0, 0);">365</span>
+    ) + 
+    geom_smooth(method = <span class="hljs-string" style="color: rgb(136, 0, 0);">"lm"</span>) + 
+    labs(
+        title = <span class="hljs-string" style="color: rgb(136, 0, 0);">'PTO vs time at "Meta"'</span>,
+        subtitle = <span class="hljs-string" style="color: rgb(136, 0, 0);">"Hey it goes up!"</span>,
+        caption = <span class="hljs-string" style="color: rgb(136, 0, 0);">"Note that employees with less than -50 hours were filtered from data"</span>,
+        y = <span class="hljs-string" style="color: rgb(136, 0, 0);">"PTO hours remaining"</span>,
+        x = <span class="hljs-string" style="color: rgb(136, 0, 0);">"Years at company"</span>,
+        color = <span class="hljs-string" style="color: rgb(136, 0, 0);">"Employee\nOrg"</span>
+    )
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Adjust legend</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = tenure, y = pto_remaining_hours, color = org)) + 
+    geom_point(alpha = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>/<span class="hljs-number" style="color: rgb(136, 0, 0);">2</span>, size = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>/<span class="hljs-number" style="color: rgb(136, 0, 0);">3</span>) + 
+    <span class="hljs-comment" style="color: rgb(136, 136, 136);"># keep all points but specify the plot range:</span>
+    coord_cartesian(ylim = c(-<span class="hljs-number" style="color: rgb(136, 0, 0);">40</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">240</span>)) +  
+    scale_x_continuous(
+        labels = <span class="hljs-keyword" style="font-weight: 700;">function</span>(x) x / <span class="hljs-number" style="color: rgb(136, 0, 0);">365</span>,
+        breaks = c(<span class="hljs-number" style="color: rgb(136, 0, 0);">0</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">2.5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">7.5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">10</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">12.5</span>) * <span class="hljs-number" style="color: rgb(136, 0, 0);">365</span>
+    ) + 
+    scale_color_viridis_d(
+        labels = c(<span class="hljs-string" style="color: rgb(136, 0, 0);">"Data Eng"</span>, <span class="hljs-string" style="color: rgb(136, 0, 0);">"Data Sci"</span>, <span class="hljs-string" style="color: rgb(136, 0, 0);">"Exp Analyst"</span>)
+    ) + 
+    theme(legend.position = <span class="hljs-string" style="color: rgb(136, 0, 0);">"bottom"</span>) + 
+    geom_smooth(method = <span class="hljs-string" style="color: rgb(136, 0, 0);">"lm"</span>) + 
+    labs(
+        title = <span class="hljs-string" style="color: rgb(136, 0, 0);">'PTO vs time at "Meta"'</span>,
+        subtitle = <span class="hljs-string" style="color: rgb(136, 0, 0);">"Hey it goes up!"</span>,
+        caption = <span class="hljs-string" style="color: rgb(136, 0, 0);">"Note that employees with less than -50 hours were filtered from data"</span>,
+        y = <span class="hljs-string" style="color: rgb(136, 0, 0);">"PTO hours remaining"</span>,
+        x = <span class="hljs-string" style="color: rgb(136, 0, 0);">"Years at company"</span>,
+        color = <span class="hljs-string" style="color: rgb(136, 0, 0);">"Employee\nOrg"</span>
+    ) 
+
+analytics_employees %&gt;% 
+    ggplot(aes(x = tenure, y = pto_remaining_hours)) + 
+    geom_point(alpha = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>/<span class="hljs-number" style="color: rgb(136, 0, 0);">2</span>, size = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>/<span class="hljs-number" style="color: rgb(136, 0, 0);">3</span>) + 
+    <span class="hljs-comment" style="color: rgb(136, 136, 136);"># keep all points but specify the plot range:</span>
+    coord_cartesian(ylim = c(-<span class="hljs-number" style="color: rgb(136, 0, 0);">40</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">240</span>)) +  
+    scale_x_continuous(
+        labels = <span class="hljs-keyword" style="font-weight: 700;">function</span>(x) x / <span class="hljs-number" style="color: rgb(136, 0, 0);">365</span>,
+        breaks = c(<span class="hljs-number" style="color: rgb(136, 0, 0);">0</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">2.5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">7.5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">10</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">12.5</span>) * <span class="hljs-number" style="color: rgb(136, 0, 0);">365</span>
+    ) + 
+    geom_smooth(method = <span class="hljs-string" style="color: rgb(136, 0, 0);">"lm"</span>) +
+    theme_bw()
+
+analytics_employees %&gt;% 
+    ggplot(aes(x = tenure, y = pto_remaining_hours)) + 
+    geom_point(alpha = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>/<span class="hljs-number" style="color: rgb(136, 0, 0);">2</span>, size = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>/<span class="hljs-number" style="color: rgb(136, 0, 0);">3</span>) + 
+    <span class="hljs-comment" style="color: rgb(136, 136, 136);"># keep all points but specify the plot range:</span>
+    coord_cartesian(ylim = c(-<span class="hljs-number" style="color: rgb(136, 0, 0);">40</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">240</span>)) +  
+    scale_x_continuous(
+        labels = <span class="hljs-keyword" style="font-weight: 700;">function</span>(x) x / <span class="hljs-number" style="color: rgb(136, 0, 0);">365</span>,
+        breaks = c(<span class="hljs-number" style="color: rgb(136, 0, 0);">0</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">2.5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">7.5</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">10</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">12.5</span>) * <span class="hljs-number" style="color: rgb(136, 0, 0);">365</span>
+    ) + 
+    geom_smooth(method = <span class="hljs-string" style="color: rgb(136, 0, 0);">"lm"</span>) +
+    theme_bw()
+ggplotly()
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Install package on devserver:</span>
+fbr::with_proxy(install.packages(<span class="hljs-string" style="color: rgb(136, 0, 0);">"plotly"</span>))
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Saving plots</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = org)) + 
+    geom_bar(stat = <span class="hljs-string" style="color: rgb(136, 0, 0);">"count"</span>)
+ggsave(<span class="hljs-string" style="color: rgb(136, 0, 0);">"employees_by_org.png"</span>)
+
+<span class="hljs-keyword" style="font-weight: 700;">library</span>(scales)
+diamonds %&gt;% 
+    ggplot(aes(y = price, x = carat)) + 
+    geom_point(aes(color = clarity)) +
+    geom_smooth(color = <span class="hljs-string" style="color: rgb(136, 0, 0);">"black"</span>) +
+    labs(
+        subtitle = <span class="hljs-string" style="color: rgb(136, 0, 0);">"Bigger diamonds are worth more $$$"</span>
+    ) + 
+    scale_y_continuous(labels = dollar)
+
+diamonds %&gt;% 
+    ggplot(aes(y = price, x = carat)) + 
+    geom_point(aes(color = clarity)) +
+    geom_smooth(color = <span class="hljs-string" style="color: rgb(136, 0, 0);">"black"</span>) +
+    labs(
+        subtitle = <span class="hljs-string" style="color: rgb(136, 0, 0);">"Bigger diamonds are worth more $$$"</span>
+    ) + 
+    scale_y_continuous(labels = number_format(big.mark = <span class="hljs-string" style="color: rgb(136, 0, 0);">","</span>))
+
+diamonds %&gt;% 
+    ggplot(aes(y = price, x = carat)) + 
+    geom_point(aes(color = clarity)) +
+    geom_smooth(color = <span class="hljs-string" style="color: rgb(136, 0, 0);">"black"</span>) +
+    labs(
+        subtitle = <span class="hljs-string" style="color: rgb(136, 0, 0);">"Bigger diamonds are worth more $$$"</span>
+    ) + 
+    scale_y_continuous(labels = dollar_format(scale = <span class="hljs-number" style="color: rgb(136, 0, 0);">1e-3</span>, suffix = <span class="hljs-string" style="color: rgb(136, 0, 0);">"k"</span>))
+ggsave(<span class="hljs-string" style="color: rgb(136, 0, 0);">"diamond-plot.png"</span>)
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># System calls</span>
+system(<span class="hljs-string" style="color: rgb(136, 0, 0);">"open diamond-plot.png"</span>)
+
+ggsave(<span class="hljs-string" style="color: rgb(136, 0, 0);">"diamond-plot.pdf"</span>, height = <span class="hljs-number" style="color: rgb(136, 0, 0);">8.5</span>, width = <span class="hljs-number" style="color: rgb(136, 0, 0);">11</span>)
+
+diamonds %&gt;% 
+    ggplot(aes(y = price, x = carat)) + 
+    geom_point(aes(color = clarity)) +
+    geom_smooth(color = <span class="hljs-string" style="color: rgb(136, 0, 0);">"black"</span>) +
+    labs(
+        subtitle = <span class="hljs-string" style="color: rgb(136, 0, 0);">"Bigger diamonds are worth more $$$"</span>
+    ) + 
+    scale_y_continuous(labels = dollar_format(scale = <span class="hljs-number" style="color: rgb(136, 0, 0);">1e-3</span>, suffix = <span class="hljs-string" style="color: rgb(136, 0, 0);">"k"</span>)) + 
+    theme(text = element_text(family = <span class="hljs-string" style="color: rgb(136, 0, 0);">"serif"</span>))
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Look at relationships across many variables</span>
+diamonds %&gt;% 
+    pivot_longer(c(x, y, z), names_to = <span class="hljs-string" style="color: rgb(136, 0, 0);">"var"</span>, values_to = <span class="hljs-string" style="color: rgb(136, 0, 0);">"value"</span>) %&gt;% 
+    ggplot(aes(x = value, y = price)) + 
+    geom_point() + 
+    facet_wrap(vars(var), scales = <span class="hljs-string" style="color: rgb(136, 0, 0);">"free_x"</span>)
+pairs(diamonds)
+
+
+
+
+
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Fundamentals</span>
+<span class="hljs-number" style="color: rgb(136, 0, 0);">3</span> * <span class="hljs-number" style="color: rgb(136, 0, 0);">4</span>
+<span class="hljs-number" style="color: rgb(136, 0, 0);">3</span> ^ <span class="hljs-number" style="color: rgb(136, 0, 0);">4</span>
+sqrt(<span class="hljs-number" style="color: rgb(136, 0, 0);">16</span>)
+log(x = <span class="hljs-number" style="color: rgb(136, 0, 0);">16</span>, base = <span class="hljs-number" style="color: rgb(136, 0, 0);">2</span>)
+log(<span class="hljs-number" style="color: rgb(136, 0, 0);">16</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">2</span>)
+log(<span class="hljs-number" style="color: rgb(136, 0, 0);">2</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">16</span>)
+?log
+log(exp(<span class="hljs-number" style="color: rgb(136, 0, 0);">3</span>))
+log10(<span class="hljs-number" style="color: rgb(136, 0, 0);">1e-7</span>) <span class="hljs-comment" style="color: rgb(136, 136, 136);"># = 7</span>
+c(<span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">2</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">3</span>)
+x &lt;- <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>
+x + <span class="hljs-number" style="color: rgb(136, 0, 0);">7</span>
+x &lt;- c(<span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">2</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">3</span>)
+x + <span class="hljs-number" style="color: rgb(136, 0, 0);">7</span>
+x &lt;- x + <span class="hljs-number" style="color: rgb(136, 0, 0);">7</span>
+
+x &lt;- <span class="hljs-string" style="color: rgb(136, 0, 0);">"dogs and cats"</span>
+x &lt;- <span class="hljs-number" style="color: rgb(136, 0, 0);">4</span>
+x / <span class="hljs-number" style="color: rgb(136, 0, 0);">2</span>
+x &lt;- x ^ <span class="hljs-number" style="color: rgb(136, 0, 0);">3</span>
+x - <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>
+
+x &lt;- <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>:<span class="hljs-number" style="color: rgb(136, 0, 0);">5</span>
+sum(x)
+sqrt(x)
+
+analytics_employees %&gt;% 
+    glimpse()
+analytics_employees %&gt;% 
+    summary()
+sum(analytics_employees$tenure) 
+mean(analytics_employees$tenure)
+median(analytics_employees$tenure)
+quantile(x = analytics_employees$tenure, probs = <span class="hljs-number" style="color: rgb(136, 0, 0);">.99</span>)
+quantile(x = analytics_employees$tenure, probs = c(<span class="hljs-number" style="color: rgb(136, 0, 0);">.01</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">.05</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">.95</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">.99</span>))
+summary(analytics_employees$tenure)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Logical</span>
+<span class="hljs-number" style="color: rgb(136, 0, 0);">1</span> == <span class="hljs-number" style="color: rgb(136, 0, 0);">2</span>
+<span class="hljs-number" style="color: rgb(136, 0, 0);">1</span> == <span class="hljs-number" style="color: rgb(136, 0, 0);">1.0</span>
+<span class="hljs-number" style="color: rgb(136, 0, 0);">2</span> &gt; <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>
+<span class="hljs-number" style="color: rgb(136, 0, 0);">2</span> &lt;= <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>
+<span class="hljs-number" style="color: rgb(136, 0, 0);">2</span> != <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>
+<span class="hljs-number" style="color: rgb(136, 0, 0);">1</span> != <span class="hljs-number" style="color: rgb(136, 0, 0);">1.0</span>
+x
+ifelse(x &lt; <span class="hljs-number" style="color: rgb(136, 0, 0);">3</span>, <span class="hljs-string" style="color: rgb(136, 0, 0);">"wow, small"</span>, <span class="hljs-string" style="color: rgb(136, 0, 0);">"that's big"</span>)
+x
+ifelse(x == <span class="hljs-number" style="color: rgb(136, 0, 0);">2</span>, <span class="hljs-string" style="color: rgb(136, 0, 0);">"YES!"</span>, <span class="hljs-string" style="color: rgb(136, 0, 0);">"no"</span>)
+<span class="hljs-number" style="color: rgb(136, 0, 0);">2</span> %<span class="hljs-keyword" style="font-weight: 700;">in</span>% x
+<span class="hljs-number" style="color: rgb(136, 0, 0);">2.5</span> %<span class="hljs-keyword" style="font-weight: 700;">in</span>% x
+case_when(
+    x == <span class="hljs-number" style="color: rgb(136, 0, 0);">5</span> ~ <span class="hljs-string" style="color: rgb(136, 0, 0);">"the biggest"</span>,
+    x == <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span> ~ <span class="hljs-string" style="color: rgb(136, 0, 0);">"the smallest"</span>,
+    <span class="hljs-literal" style="color: rgb(120, 169, 96);">TRUE</span> ~ <span class="hljs-string" style="color: rgb(136, 0, 0);">"in the middle"</span>
+)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># NA is missing</span>
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Not NULL</span>
+analytics_employees$pto_remaining_hours %&gt;% 
+    summary()
+median(analytics_employees$pto_remaining_hours)
+median(analytics_employees$pto_remaining_hours, na.rm = <span class="hljs-literal" style="color: rgb(120, 169, 96);">TRUE</span>)
+
+is.na(analytics_employees$pto_remaining_hours)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># EX</span>
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Create a sequence of all the even numbers from -100 to 100. </span>
+x &lt;- seq(from = -<span class="hljs-number" style="color: rgb(136, 0, 0);">100</span>, to = <span class="hljs-number" style="color: rgb(136, 0, 0);">100</span>, by = <span class="hljs-number" style="color: rgb(136, 0, 0);">2</span>)
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Google to find the function. Assign the vector to the variable `x`.</span>
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># (Try to) take the base-2 logarithm of all the numbers in x. </span>
+log(x = x, base = <span class="hljs-number" style="color: rgb(136, 0, 0);">2</span>)
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Assign the results to the variable `log2_x`.</span>
+log2_x &lt;- log(x = x, base = <span class="hljs-number" style="color: rgb(136, 0, 0);">2</span>)
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># How many of the numbers in `x` have a base-2 log?</span>
+sum(!is.na(log2_x))
+is.na(<span class="hljs-literal" style="color: rgb(120, 169, 96);">Inf</span>)
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># What is the sum of the base-2s logs where it can be taken?</span>
+sum(ifelse(log2_x &gt; <span class="hljs-number" style="color: rgb(136, 0, 0);">0</span>, log2_x, <span class="hljs-number" style="color: rgb(136, 0, 0);">0</span>), na.rm = <span class="hljs-literal" style="color: rgb(120, 169, 96);">TRUE</span>)
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Bonus: Plot `log2_x` vs. `x`. </span>
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># You’ll need to create a data frame first; see if you can find a function for that.</span>
+<span class="hljs-keyword" style="font-weight: 700;">library</span>(tidyverse)
+data.frame(
+    x = x,
+    log_of_x = log2_x
+) %&gt;% 
+    ggplot(aes(x = x, y = log_of_x)) + 
+    geom_point() + 
+    scale_x_continuous(limits = c(<span class="hljs-number" style="color: rgb(136, 0, 0);">0</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">100</span>))
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Packages</span>
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Install once:</span>
+install.packages(<span class="hljs-string" style="color: rgb(136, 0, 0);">"tidyverse"</span>)
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># On devserver:</span>
+<span class="hljs-keyword" style="font-weight: 700;">library</span>(fbr)
+with_proxy(install.packages(<span class="hljs-string" style="color: rgb(136, 0, 0);">"tidyverse"</span>))
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Every session:</span>
+<span class="hljs-keyword" style="font-weight: 700;">library</span>(tidyverse)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># i/o</span>
+saveRDS(analytics_employees, <span class="hljs-string" style="color: rgb(136, 0, 0);">"copy-of-analytics-employees.RDS"</span>)
+
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># New sessions</span>
+analytics_employees &lt;- readRDS(<span class="hljs-string" style="color: rgb(136, 0, 0);">"copy-of-analytics-employees.RDS"</span>)
+<span class="hljs-keyword" style="font-weight: 700;">library</span>(tidyverse)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Write csv</span>
+write_csv(analytics_employees, <span class="hljs-string" style="color: rgb(136, 0, 0);">"ae-csv.csv"</span>)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># To read from and write to the database:</span>
+presto()
+upload.data.to.hive()
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Both are from library(fbr)</span>
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);">#####################</span>
+<span class="hljs-comment" style="color: rgb(136, 136, 136);">####### DAY 2 #######</span>
+<span class="hljs-comment" style="color: rgb(136, 136, 136);">#####################</span>
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);">#selecting one column</span>
+names &lt;- analytics_employees %&gt;%
+    select(name)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);">#selecting multiple columns</span>
+subset &lt;- analytics_employees %&gt;%
+    select(c(name, org, tenure, pto_remaining_hours))
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);">#dropping column(s)</span>
+analytics_2 &lt;- analytics_employees %&gt;%
+    select(-c(name, role))
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);">#renaming variable(s)</span>
+subset %&gt;%
+    rename(pto_hours = pto_remaining_hours,
+           organization = org)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);">#computing new columns from existing</span>
+subset %&gt;%
+    mutate(pto_remaining_days = pto_remaining_hours / <span class="hljs-number" style="color: rgb(136, 0, 0);">8</span>,
+           pto_days_rounded = round(pto_remaining_hours))
+<span class="hljs-comment" style="color: rgb(136, 136, 136);">#round - as expected, specify decimal points</span>
+<span class="hljs-comment" style="color: rgb(136, 136, 136);">#ceiling - nearest whole number above</span>
+<span class="hljs-comment" style="color: rgb(136, 136, 136);">#floor - nearest whole number below</span>
+
+subset2 &lt;- analytics_employees %&gt;%
+    select(name, role, org)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);">#combining character variables</span>
+subset2 %&gt;%
+    mutate(org_role = paste(org, role, sep=<span class="hljs-string" style="color: rgb(136, 0, 0);">'-'</span>))
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);">#changing data type</span>
+analytics_2 %&gt;%
+    mutate(hire_date = as.Date(hire_date))
+analytics_2 %&gt;%
+    mutate(employee_type = as.factor(employee_type))
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Row manipulations</span>
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Arrange =~ ORDER BY</span>
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Filter =~ WHERE</span>
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># sort by category</span>
+arrange(analytics_employees,name)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># equivalent</span>
+analytics_employees %&gt;% 
+    arrange(name)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># sort by numeric</span>
+analytics_employees %&gt;% 
+    arrange(pto_remaining_hours )
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># sorting by multiple columns</span>
+analytics_employees %&gt;%
+    arrange(pto_remaining_hours, name)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># reverse sort</span>
+analytics_employees %&gt;%
+    arrange(desc(name))
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># How do NA's get sorted?</span>
+analytics_employees %&gt;%
+    arrange(building) %&gt;%
+    tail()
+
+analytics_employees %&gt;%
+    arrange(desc(building)) %&gt;%
+    tail()
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># visual check to see that arrange is working</span>
+analytics_employees %&gt;%
+    arrange(pto_remaining_hours) %&gt;%
+    ggplot(aes(y = pto_remaining_hours, x = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>:length(pto_remaining_hours))) +
+    geom_point()
+
+analytics_employees %&gt;%
+    <span class="hljs-comment" style="color: rgb(136, 136, 136);">#arrange(pto_remaining_hours) %&gt;%</span>
+    ggplot(aes(y = pto_remaining_hours, x = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>:length(pto_remaining_hours))) +
+    geom_point()
+
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Filter =~ WHERE</span>
+
+glimpse(analytics_employees)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Filter by one variable</span>
+analytics_employees %&gt;%
+    filter(org == <span class="hljs-string" style="color: rgb(136, 0, 0);">'DS'</span>)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># any boolean vector or thing that generates boolean vector will work</span>
+condition &lt;- analytics_employees$org == <span class="hljs-string" style="color: rgb(136, 0, 0);">'DS'</span>
+filter(analytics_employees, condition)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Combining conditions with AND "&amp;"</span>
+analytics_employees %&gt;%
+    filter(org == <span class="hljs-string" style="color: rgb(136, 0, 0);">'DS'</span> &amp; country == <span class="hljs-string" style="color: rgb(136, 0, 0);">'US'</span>)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># equivalent to above</span>
+analytics_employees %&gt;%
+    filter(org == <span class="hljs-string" style="color: rgb(136, 0, 0);">'DS'</span>, country == <span class="hljs-string" style="color: rgb(136, 0, 0);">'US'</span>)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Combining conditions with OR '|'</span>
+analytics_employees %&gt;%
+    filter(org == <span class="hljs-string" style="color: rgb(136, 0, 0);">'DS'</span> | country == <span class="hljs-string" style="color: rgb(136, 0, 0);">'US'</span>)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># find employees with above average pto</span>
+analytics_employees %&gt;%
+    filter(pto_remaining_hours &gt; mean(pto_remaining_hours, na.rm = <span class="hljs-literal" style="color: rgb(120, 169, 96);">TRUE</span>))
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);">#########</span>
+analytics_employees
+<span class="hljs-comment" style="color: rgb(136, 136, 136);">### of the employees who are currently active </span>
+<span class="hljs-comment" style="color: rgb(136, 136, 136);">### and in the us, who are the people with the top 10 direct reports</span>
+<span class="hljs-comment" style="color: rgb(136, 136, 136);">#</span>
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># creating a subset</span>
+small_subset &lt;- analytics_employees %&gt;% 
+    select(name, country, is_active, direct_reports)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);">#checking for activeness</span>
+small_subset_active &lt;- small_subset %&gt;% 
+    filter(is_active == <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);">#filter for country in us</span>
+small_subset_active_country &lt;- small_subset_active %&gt;% 
+    filter(country == <span class="hljs-string" style="color: rgb(136, 0, 0);">"US"</span>)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># taking the people with the top 10 direct reports</span>
+small_subset_active_country %&gt;% 
+    slice_max(order_by = direct_reports, n = <span class="hljs-number" style="color: rgb(136, 0, 0);">10</span>)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># combined pipe with manipulation functions</span>
+analytics_employees %&gt;% 
+    select(name, role, country, is_active, direct_reports) %&gt;% 
+    filter(is_active == <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>, country == <span class="hljs-string" style="color: rgb(136, 0, 0);">"US"</span>) %&gt;% 
+    slice_max(order_by = direct_reports, n = <span class="hljs-number" style="color: rgb(136, 0, 0);">10</span>)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># combined pipe with ggplot</span>
+analytics_employees %&gt;% 
+    select(name, role, country, is_active, direct_reports) %&gt;% 
+    filter(is_active == <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>, country == <span class="hljs-string" style="color: rgb(136, 0, 0);">"US"</span>) %&gt;% 
+    slice_max(order_by = direct_reports, n = <span class="hljs-number" style="color: rgb(136, 0, 0);">10</span>) %&gt;% 
+    ggplot(aes(x = name)) + 
+    geom_bar() + 
+    coord_flip()
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># EXERCISE</span>
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Create a column giving each employee’s tenure in years</span>
+analytics_employees %&gt;% 
+    mutate(tenure_years = tenure / <span class="hljs-number" style="color: rgb(136, 0, 0);">365.25</span>)
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Sort the table from oldest to newest hires within role</span>
+analytics_employees %&gt;% 
+    mutate(tenure_years = tenure / <span class="hljs-number" style="color: rgb(136, 0, 0);">365.25</span>) %&gt;% 
+    arrange(role, tenure) %&gt;% 
+    select(role, tenure, everything())
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Find the five inactive employees with the shortest tenure at FB</span>
+analytics_employees %&gt;% 
+    filter(!is_active) %&gt;% 
+    slice_min(tenure, n = <span class="hljs-number" style="color: rgb(136, 0, 0);">5</span>) %&gt;% 
+    select(is_active, tenure)
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Bonus: Calculate the amount of PTO each employee has taken</span>
+analytics_employees %&gt;% 
+    mutate(
+        accrued_pto = tenure / <span class="hljs-number" style="color: rgb(136, 0, 0);">365.25</span> * <span class="hljs-number" style="color: rgb(136, 0, 0);">21</span> * <span class="hljs-number" style="color: rgb(136, 0, 0);">8</span>,
+        pto_days_taken = (accrued_pto - pto_remaining_hours) / <span class="hljs-number" style="color: rgb(136, 0, 0);">8</span>
+    ) %&gt;% 
+    select(tenure, accrued_pto, pto_days_taken)
+
+
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Row aggregation</span>
+analytics_employees %&gt;% 
+    group_by(role) %&gt;% 
+    summarize(avg_tenure = mean(tenure))
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Can create multiple summary columns</span>
+analytics_employees %&gt;% 
+    group_by(role) %&gt;% 
+    summarize(
+        avg_tenure = mean(tenure),
+        max_tenure = max(tenure),
+        sd_tenure = sd(tenure)
+    )
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Can add conditions in summarize</span>
+analytics_employees %&gt;% 
+    group_by(role) %&gt;% 
+    summarize(
+        avg_tenure = mean(tenure),
+        max_tenure = max(tenure),
+        sd_tenure = sd(tenure),
+        <span class="hljs-comment" style="color: rgb(136, 136, 136);"># proportion within US</span>
+        prop_us = mean(country == <span class="hljs-string" style="color: rgb(136, 0, 0);">"US"</span>)
+    )
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Multiple groups:</span>
+analytics_employees %&gt;% 
+    group_by(role, org) %&gt;% 
+    summarize(
+        avg_tenure = mean(tenure),
+        max_tenure = max(tenure),
+        sd_tenure = sd(tenure)
+    )
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Without group by: summary of the whole dataset</span>
+analytics_employees %&gt;% 
+    <span class="hljs-comment" style="color: rgb(136, 136, 136);"># group_by(role, org) %&gt;% </span>
+    summarize(
+        avg_tenure = mean(tenure),
+        max_tenure = max(tenure),
+        sd_tenure = sd(tenure)
+    )
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Count</span>
+analytics_employees %&gt;% 
+    group_by(role, org) %&gt;% 
+    summarize(
+        n = n()
+    )
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Or, shortcut</span>
+analytics_employees %&gt;% 
+    count(role, org)
+
+analytics_employees %&gt;% 
+    count(role, org, sort = <span class="hljs-literal" style="color: rgb(120, 169, 96);">TRUE</span>, wt = tenure, name = <span class="hljs-string" style="color: rgb(136, 0, 0);">"person_days"</span>)
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># same as</span>
+analytics_employees %&gt;% 
+    group_by(role, org) %&gt;% 
+    summarize(person_days = sum(tenure))
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># n_distinct to count distinct entries</span>
+analytics_employees %&gt;% 
+    group_by(role, org) %&gt;% 
+    summarize(countries_in = n_distinct(country))
+
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># How many analytics employees are there in each building? </span>
+analytics_employees %&gt;% 
+    count(building)
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Which building has the most analytics employees?</span>
+analytics_employees %&gt;% 
+    filter(as.logical(is_active)) %&gt;% 
+    count(building, sort = <span class="hljs-literal" style="color: rgb(120, 169, 96);">TRUE</span>)
+analytics_employees %&gt;% 
+    group_by(building) %&gt;% 
+    summarize(active_employees = sum(is_active)) %&gt;% 
+    arrange(desc(active_employees))
+analytics_employees %&gt;% 
+    count(building) %&gt;% 
+    slice_max(n, n = <span class="hljs-number" style="color: rgb(136, 0, 0);">2</span>)
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># How many buildings are there in each country?</span>
+rm(analytics_2)
+analytics_employees %&gt;% 
+    group_by(country) %&gt;% 
+    summarize(num_buildings = n_distinct(building))
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Mini bonus: How many buildings are there overall?</span>
+analytics_employees %&gt;% 
+    <span class="hljs-comment" style="color: rgb(136, 136, 136);"># group_by(country) %&gt;% </span>
+    summarize(num_buildings = n_distinct(building))
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Which country has the highest manager:IC ratio?</span>
+analytics_employees %&gt;% 
+    group_by(country) %&gt;% 
+    summarize(
+        man_ic_ratio_mean = mean(role == <span class="hljs-string" style="color: rgb(136, 0, 0);">"Manager"</span>) / mean(role == <span class="hljs-string" style="color: rgb(136, 0, 0);">"IC"</span>),
+        man_ic_ratio_sum = sum(role == <span class="hljs-string" style="color: rgb(136, 0, 0);">"Manager"</span>) / sum(role == <span class="hljs-string" style="color: rgb(136, 0, 0);">"IC"</span>)
+    )
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># sum(c(TRUE, TRUE, FALSE))</span>
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Bonus: Which building has the highest manager:IC ratio </span>
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># relative to the norm for the country?</span>
+analytics_employees %&gt;% 
+    group_by(country) %&gt;% 
+    mutate(country_avg_ratio = mean(role == <span class="hljs-string" style="color: rgb(136, 0, 0);">"Manager"</span>) / mean(role == <span class="hljs-string" style="color: rgb(136, 0, 0);">"IC"</span>)) %&gt;% 
+    group_by(building) %&gt;% 
+    summarize(
+        building_avg_ratio = mean(role == <span class="hljs-string" style="color: rgb(136, 0, 0);">"Manager"</span>) / mean(role == <span class="hljs-string" style="color: rgb(136, 0, 0);">"IC"</span>),
+        offset_from_country_avg = building_avg_ratio - country_avg_ratio
+    ) 
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># ^ That didn't work. Try another approach:</span>
+avg_ratio_by_country &lt;- 
+    analytics_employees %&gt;% 
+    filter(!is.na(building)) %&gt;% 
+    group_by(country) %&gt;% 
+    summarize(country_avg_ratio = mean(role == <span class="hljs-string" style="color: rgb(136, 0, 0);">"Manager"</span>) / mean(role == <span class="hljs-string" style="color: rgb(136, 0, 0);">"IC"</span>))
+avg_ratio_by_buiding &lt;- 
+    analytics_employees %&gt;% 
+    filter(!is.na(building)) %&gt;% 
+    group_by(building, country) %&gt;% 
+    summarize(building_avg_ratio = mean(role == <span class="hljs-string" style="color: rgb(136, 0, 0);">"Manager"</span>) / mean(role == <span class="hljs-string" style="color: rgb(136, 0, 0);">"IC"</span>))
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># JOIN </span>
+inner_join(
+    avg_ratio_by_country,
+    avg_ratio_by_buiding,
+    by = <span class="hljs-string" style="color: rgb(136, 0, 0);">"country"</span>
+) %&gt;% 
+    mutate(
+        offset_from_country_avg = building_avg_ratio - country_avg_ratio
+    ) %&gt;% 
+    arrange(desc(offset_from_country_avg))
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># PULLING DATA</span>
+<span class="hljs-keyword" style="font-weight: 700;">library</span>(fbr)
+buildings &lt;- 
+    presto(query = <span class="hljs-string" style="color: rgb(136, 0, 0);">"
+SELECT
+    code,
+    city,
+    country,
+    timezone,
+    closed,
+    name
+FROM dim_fsc_rdv_buildings
+WHERE
+    ds = '&lt;LATEST_DS:dim_fsc_rdv_buildings&gt;'"</span>, 
+           namespace = <span class="hljs-string" style="color: rgb(136, 0, 0);">"bizapps"</span>)
+
+buildings &lt;- read_csv(<span class="hljs-string" style="color: rgb(136, 0, 0);">"buildings.csv"</span>)
+
+inner_join(
+    analytics_employees,
+    buildings,
+    by = c(<span class="hljs-string" style="color: rgb(136, 0, 0);">"building"</span> = <span class="hljs-string" style="color: rgb(136, 0, 0);">"code"</span>),
+    suffix = c(<span class="hljs-string" style="color: rgb(136, 0, 0);">"_employee"</span>, <span class="hljs-string" style="color: rgb(136, 0, 0);">"_building"</span>)
+) %&gt;% 
+    select(name_employee, country_employee, country_building) %&gt;% 
+    summarize(frac_same_country = mean(country_employee == country_building))
+left_join
+right_join
+full_join
+anti_join
+
+<span class="hljs-keyword" style="font-weight: 700;">library</span>(tidyverse)
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Reshaping data</span>
+analytics_employees %&gt;% 
+    pivot_longer(cols = c(org, role), names_to = <span class="hljs-string" style="color: rgb(136, 0, 0);">"variable"</span>, values_to = <span class="hljs-string" style="color: rgb(136, 0, 0);">"value"</span>) %&gt;% 
+    select(name, variable, value)
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># One application: Look at many distributions at once</span>
+analytics_employees %&gt;% 
+    pivot_longer(cols = where(is.numeric), names_to = <span class="hljs-string" style="color: rgb(136, 0, 0);">"variable"</span>, values_to = <span class="hljs-string" style="color: rgb(136, 0, 0);">"value"</span>) %&gt;% 
+    select(name, variable, value) %&gt;% 
+    ggplot(aes(x = value)) + 
+    geom_density() + 
+    facet_wrap(vars(variable), scales = <span class="hljs-string" style="color: rgb(136, 0, 0);">"free"</span>)
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># To go other direction</span>
+pivot_wider()
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Dates and time</span>
+<span class="hljs-keyword" style="font-weight: 700;">library</span>(lubridate)
+analytics_employees %&gt;% 
+    ggplot(aes(x = hire_date)) + 
+    geom_density()
+
+analytics_employees %&gt;% 
+    mutate(hire_date = as_date(hire_date)) %&gt;% 
+    ggplot(aes(x = hire_date)) + 
+    geom_density()
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Quickly create a date</span>
+ymd(<span class="hljs-number" style="color: rgb(136, 0, 0);">20220506</span>)
+Sys.Date() - years(<span class="hljs-number" style="color: rgb(136, 0, 0);">3</span>)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Strings</span>
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Sub strings</span>
+analytics_employees %&gt;% 
+    select(name) %&gt;% 
+    mutate(first_four = str_sub(name, <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">4</span>))
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># detect strings</span>
+analytics_employees %&gt;% 
+    select(name) %&gt;% 
+    filter(str_detect(name, <span class="hljs-string" style="color: rgb(136, 0, 0);">"Levy"</span>))
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Replace parts of strings</span>
+analytics_employees %&gt;% 
+    select(name) %&gt;% 
+    mutate(new_name = str_replace(name, <span class="hljs-string" style="color: rgb(136, 0, 0);">"Michael"</span>, <span class="hljs-string" style="color: rgb(136, 0, 0);">"Mike"</span>)) %&gt;% 
+    filter(str_detect(name, <span class="hljs-string" style="color: rgb(136, 0, 0);">"Michael"</span>))
+
+analytics_employees %&gt;% 
+    filter(str_detect(name, <span class="hljs-string" style="color: rgb(136, 0, 0);">"ss$"</span>)) %&gt;% 
+    select(name)
+wday(Sys.Date())
+
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># EXERCISE strings and dates</span>
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Which month has seen the most hires?</span>
+analytics_employees %&gt;% 
+    count(month_hire = month(hire_date)) %&gt;% 
+    slice_max(n, n = <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>)
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># How many employees have been hired on a Friday?</span>
+analytics_employees %&gt;% 
+    count(hire_dow = wday(hire_date, label = <span class="hljs-literal" style="color: rgb(120, 169, 96);">TRUE</span>))
+?wday
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># What percent of employees have a name with the last letter "e"?</span>
+analytics_employees %&gt;% 
+    summarize(n_ending_in_e = mean(str_detect(name, <span class="hljs-string" style="color: rgb(136, 0, 0);">"e$"</span>)))
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Starts with e</span>
+analytics_employees %&gt;% 
+    summarize(n_ending_in_e = mean(str_detect(name, <span class="hljs-string" style="color: rgb(136, 0, 0);">"^E"</span>)))
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Bonus: Have the days of the week employees are hired on changed over the years? </span>
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Demonstrate with a plot.</span>
+analytics_employees %&gt;% 
+    ggplot(aes(x = wday(hire_date), color = factor(year(hire_date)))) +
+    geom_density()
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Regex Bonus: How many employees do not have two consecutive vowels in their name?</span>
+analytics_employees %&gt;% 
+    filter(!str_detect(tolower(name), <span class="hljs-string" style="color: rgb(136, 0, 0);">"[aeiou][aeiou]"</span>))
+
+
+glimpse(analytics_employees)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Color blind friendly tile chart (continuous)</span>
+analytics_employees %&gt;% 
+    count(role, country) %&gt;% 
+    ggplot(aes(x=role, y=country, fill=n)) +
+    geom_tile() +
+    scale_fill_viridis_c()
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Color blind friendly tile chart (discrete)</span>
+analytics_employees %&gt;% 
+    count(role, country, sort=<span class="hljs-literal" style="color: rgb(120, 169, 96);">TRUE</span>) %&gt;% 
+    mutate(gt_300 = ifelse(n &gt; <span class="hljs-number" style="color: rgb(136, 0, 0);">300</span>, <span class="hljs-literal" style="color: rgb(120, 169, 96);">TRUE</span>, <span class="hljs-literal" style="color: rgb(120, 169, 96);">FALSE</span>)) %&gt;% 
+    ggplot() +
+    geom_tile(aes(x=role, y=country, fill=gt_300)) +
+    scale_fill_viridis_d()
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># </span>
+<span class="hljs-keyword" style="font-weight: 700;">library</span>(lubridate)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Counting by floored month, added log y axis, added date x-axis, formatted chart labels</span>
+hire_plot &lt;- analytics_employees %&gt;% 
+    mutate(hire_date_month = floor_date(ymd(hire_date), unit=<span class="hljs-string" style="color: rgb(136, 0, 0);">'month'</span>)) %&gt;% 
+    filter(hire_date &gt;= <span class="hljs-string" style="color: rgb(136, 0, 0);">'2021-01-01'</span>) %&gt;% 
+    count(role, hire_date_month, sort=<span class="hljs-literal" style="color: rgb(120, 169, 96);">TRUE</span>) %&gt;% 
+    ggplot(aes(x=hire_date_month, y=n, color=role)) +
+    geom_line() +
+    scale_y_log10() +
+    scale_x_date(date_breaks = <span class="hljs-string" style="color: rgb(136, 0, 0);">'month'</span>, date_labels = <span class="hljs-string" style="color: rgb(136, 0, 0);">'%y %b'</span>) +
+    labs(x=<span class="hljs-string" style="color: rgb(136, 0, 0);">'Hire Date Month'</span>,
+         y=<span class="hljs-string" style="color: rgb(136, 0, 0);">'Count of Hires'</span>,
+         color=<span class="hljs-string" style="color: rgb(136, 0, 0);">'Hire Role'</span>,
+         title=<span class="hljs-string" style="color: rgb(136, 0, 0);">'Count of Hires in 2021 cut by role'</span>,
+         caption=<span class="hljs-string" style="color: rgb(136, 0, 0);">'Filtering out data before 2022'</span>) +
+    geom_vline(aes(xintercept=ymd(<span class="hljs-string" style="color: rgb(136, 0, 0);">'2022-02-01'</span>)), linetype=<span class="hljs-string" style="color: rgb(136, 0, 0);">'dashed'</span>)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Wrapping plotly around our ggplot (no additional work!)    </span>
+<span class="hljs-keyword" style="font-weight: 700;">library</span>(plotly)
+ggplotly(hire_plot)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Add text label to end of plot</span>
+analytics_employees %&gt;% 
+    mutate(hire_date_month = floor_date(ymd(hire_date), unit=<span class="hljs-string" style="color: rgb(136, 0, 0);">'month'</span>)) %&gt;% 
+    filter(hire_date &gt;= <span class="hljs-string" style="color: rgb(136, 0, 0);">'2021-01-01'</span>) %&gt;% 
+    count(role, hire_date_month, sort=<span class="hljs-literal" style="color: rgb(120, 169, 96);">TRUE</span>) %&gt;% 
+    mutate(role_lab = ifelse(hire_date_month == <span class="hljs-string" style="color: rgb(136, 0, 0);">'2022-04-01'</span>, role, <span class="hljs-literal" style="color: rgb(120, 169, 96);">NA</span>)) %&gt;% 
+    ggplot(aes(x=hire_date_month, y=n, color=role)) +
+    geom_line() +
+    geom_label(aes(label=role_lab))
+
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># direct_reports, tenure, is_active, org_level</span>
+glimpse(analytics_employees)
+
+theme_set(theme_light())
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Using check_overlap to reduce messy labels (strips some out)</span>
+analytics_employees %&gt;% 
+    filter(is_active == <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>, org_level &lt;= <span class="hljs-number" style="color: rgb(136, 0, 0);">5</span>) %&gt;% 
+    mutate(city = str_sub(building, <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">3</span>),
+           name_lab = str_replace(name,<span class="hljs-string" style="color: rgb(136, 0, 0);">' '</span>, <span class="hljs-string" style="color: rgb(136, 0, 0);">'\n'</span>)) %&gt;%
+    ggplot(aes(x=direct_reports, y=tenure)) +
+    geom_text(aes(label=name_lab), size=<span class="hljs-number" style="color: rgb(136, 0, 0);">2.5</span>, nudge_y = <span class="hljs-number" style="color: rgb(136, 0, 0);">300</span>, check_overlap=<span class="hljs-literal" style="color: rgb(120, 169, 96);">TRUE</span>) +
+    geom_point(aes(color=city)) +
+    labs(x = <span class="hljs-string" style="color: rgb(136, 0, 0);">'Direct Reports'</span>,
+         y = <span class="hljs-string" style="color: rgb(136, 0, 0);">'Tenure'</span>,
+         color = <span class="hljs-string" style="color: rgb(136, 0, 0);">'City Abbrev'</span>,
+         title = <span class="hljs-string" style="color: rgb(136, 0, 0);">'Active Employees with org level LTE 5'</span>)
+
+<span class="hljs-comment" style="color: rgb(136, 136, 136);"># Using ggrepel - Recommended solution for large plots of points with many labels</span>
+analytics_employees %&gt;% 
+    filter(is_active == <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>, org_level &lt;= <span class="hljs-number" style="color: rgb(136, 0, 0);">5</span>) %&gt;% 
+    mutate(city = str_sub(building, <span class="hljs-number" style="color: rgb(136, 0, 0);">1</span>, <span class="hljs-number" style="color: rgb(136, 0, 0);">3</span>),
+           name_lab = str_replace(name,<span class="hljs-string" style="color: rgb(136, 0, 0);">' '</span>, <span class="hljs-string" style="color: rgb(136, 0, 0);">'\n'</span>)) %&gt;%
+    ggplot(aes(x=direct_reports, y=tenure)) +
+    ggrepel::geom_text_repel(aes(label=name_lab), size=<span class="hljs-number" style="color: rgb(136, 0, 0);">2.5</span>, nudge_y = <span class="hljs-number" style="color: rgb(136, 0, 0);">300</span>) +
+    geom_point(aes(color=city)) +
+    labs(x = <span class="hljs-string" style="color: rgb(136, 0, 0);">'Direct Reports'</span>,
+         y = <span class="hljs-string" style="color: rgb(136, 0, 0);">'Tenure'</span>,
+         color = <span class="hljs-string" style="color: rgb(136, 0, 0);">'City Abbrev'</span>,
+         title = <span class="hljs-string" style="color: rgb(136, 0, 0);">'Active Employees with org level LTE 5'</span>)
+
+
+    </pre>
