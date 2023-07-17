@@ -1,16 +1,17 @@
 .main{
   flex:65%;
-  padding: 10vh 8vw;
-  font-size: 25px;
+  padding: 1vh 8vw;
+  /*font-size: 25px;*/
+  font-size: 15px;
   color: #847d7d;
   /*line-height: 25px;*/ 
 }
 
 
 .main a {
-    color: #6f6567;
+    color: #534e4f;
     text-decoration: none;
-    font-size: 20px;
+    font-size: 15x;
 }.main a:hover{ color: #f9b4c4; transition : 0.1s;}
 
 
@@ -21,3 +22,79 @@
    margin-left: auto;
    margin-right: auto;
    }
+
+.page {
+  max-width: 650px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+
+#greeter {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  align-items: center;
+  /*margin: 2rem 0;*/
+}
+
+#greeter h1 {
+  font-size: 32px;
+  margin-bottom: 0;
+}
+
+#greeter .textbox {
+  max-width: 488px;
+  padding-right: 1em;
+}
+
+#greeter .avatar {
+  max-width: 140px;
+}
+
+@media (max-width: 666px) {
+  .page {
+    margin: 0 auto;
+    font-size: 0.85rem;
+  }
+
+  .photo {
+    width : 100%
+  } 
+
+  .cv {
+    width : 100%
+  }
+}
+
+
+/* Components */
+#nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--nav-spacing);
+  background-color: #c8c8c8;
+}
+
+#nav #logo {
+  font-weight: bold;
+}
+
+#nav ul {
+  list-style: none;
+  display: flex;
+  padding-left: 0;
+}
+
+#nav li {
+ 
+}
+
+#nav a {
+	padding : 0px 1.5vw;
+	color: #847d7d;
+}
+
