@@ -18,7 +18,7 @@ generate_page <- function(pagename, title, subtitle = '', headerimage = 'images/
 ## make index page
 
 #idx = generate_page('Steve Fick', 'STEVE FICK', 'Geospatial Data Scientist', 'images/background.jpg')
-idx = generate_page('Steve Fick', '', 'Geospatial Data Scientist')
+idx = generate_page('Steve Fick', 'STEVE FICK', 'Geospatial Data Scientist')
 
 
 ## index page content
@@ -35,7 +35,7 @@ idx_content = '
 	<div id="greeter">
 	
         <div class="textbox"> 
-	<h1> Steve Fick </h1> <br>           
+	<!-- <h1> Steve Fick </h1> <br>           -->
 	I develop tools and datasets for evidence-based decision making. My areas of specialization include environmental modeling, data science, spatial ecology, and restoration ecology.
             <br><br>
 </div>
@@ -98,7 +98,7 @@ cat( pubs, file = 'publications.html', sep = '\n')
 ###########################
 ## Make CV page
 
-cv <- generate_page('CV', 'Curriculum Vitae')
+cv <- generate_page('CV', 'CURRICULUM VITAE')
 
 cv_content = '
 <div class="w3-content w3-padding-large w3-margin-top" id="portfolio">
