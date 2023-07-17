@@ -14,7 +14,9 @@
     font-size: 15x;
 }.main a:hover{ color: #f9b4c4; transition : 0.1s;}
 
-
+li {
+    list-style-type : none;
+}
  
 .photo{
    max-width: 1500px; 
