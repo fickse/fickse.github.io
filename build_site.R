@@ -18,7 +18,7 @@ generate_page <- function(pagename, title, subtitle = '', headerimage = 'images/
 ## make index page
 
 #idx = generate_page('Steve Fick', 'STEVE FICK', 'Geospatial Data Scientist', 'images/background.jpg')
-idx = generate_page('Steve Fick', 'STEVE FICK', 'Geospatial Data Scientist')
+idx = generate_page('Steve Fick', '', 'Geospatial Data Scientist')
 
 
 ## index page content
