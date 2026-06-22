@@ -4,17 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plotly Dashboard</title>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist@3.6.0/plotly.min.js"></script>
     <style>
-        body {
-            font-family: sans-serif;
-            margin: 20px;
-        }
-        #chart {
-            width: 100%;
-            max-width: 900px;
-            height: 500px;
-        }
+        body { font-family: sans-serif; margin: 20px; }
+        #chart { width: 100%; max-width: 900px; height: 500px; }
     </style>
 </head>
 <body>
@@ -23,30 +16,26 @@
     <div id="chart">Loading chart data...</div>
 
     <script>
-        // Replace with your actual R2 public URL or custom domain
-        const r2Url = "https://pub-aee2639b453f46b9abdecd3d0784be68.r2.dev/data.json"
+        const r2Url = "https://pub-aee2639b453f46b9abdecd3d0784be68.r2.dev/data.json";
 
         async function fetchAndRenderChart() {
             try {
                 const response = await fetch(r2Url);
-                
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}`);
                 }
 
-                // Parse the JSON object containing data and layout keys
                 const figure = await response.json();
-
-                // Inject directly into the Plotly engine
+                
+                // Renders data directly inside the matching target div above
                 Plotly.newPlot('chart', figure.data, figure.layout, { responsive: true });
 
             } catch (error) {
                 console.error("Failed to load chart data:", error);
-                document.getElementById('chart').innerText = "Error loading chart data.";
+                document.getElementById('chart').innerText = "Error loading chart data: " + error.message;
             }
         }
 
-        // Run the function when the DOM is fully loaded
         document.addEventListener('DOMContentLoaded', fetchAndRenderChart);
     </script>
 
