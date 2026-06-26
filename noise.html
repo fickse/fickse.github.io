@@ -70,9 +70,11 @@
             <div id="figw" class="plot-window"></div>
         </div>
     </div>
-
+    
     <script>
-        const r2Url = "https://pub-aee2639b453f46b9abdecd3d0784be68.r2.dev/data.json";
+        const cacheBuster = new Date().getTime();
+
+        const r2Url = "https://pub-aee2639b453f46b9abdecd3d0784be68.r2.dev/data.json?v=${cacheBuster}";
 
         async function fetchAndRenderDashboard() {
             try {
